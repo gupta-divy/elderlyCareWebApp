@@ -208,7 +208,7 @@ export function CreateContactScreen() {
 
       {!canSaveDeviceContact() ? (
         <p className="px-2 text-center text-base text-slate-500">
-          Save works when this screen is opened inside the Android app.
+          Prototype demo: browsers cannot save directly to device contacts, but this flow shows the intended interaction.
         </p>
       ) : null}
 

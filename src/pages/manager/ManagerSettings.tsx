@@ -90,10 +90,10 @@ export function ChildSettings() {
       <section className="space-y-4 rounded-[28px] bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-2xl font-bold text-slate-800">App setup mode</h3>
+            <h3 className="text-2xl font-bold text-slate-800">Prototype setup mode</h3>
             <p className="mt-2 text-sm text-slate-500">
-              Handle advanced Android permissions once during onboarding so the parent never has to
-              touch them again.
+              Mark the browser demo steps complete so the parent can explore remote help without
+              real device permissions.
             </p>
           </div>
           <span
@@ -110,9 +110,9 @@ export function ChildSettings() {
         <div className="space-y-3">
           {[
             ['explainedScreenSharing', 'Screen sharing permission explained'],
-            ['accessibilityServiceEnabled', 'AccessibilityService enabled for remote control'],
+            ['accessibilityServiceEnabled', 'Remote support explained'],
             ['notificationPermissionGranted', 'Notification permission granted'],
-            ['whatsAppInstalled', 'WhatsApp installed and verified'],
+            ['whatsAppInstalled', 'WhatsApp sharing available'],
           ].map(([key, label]) => {
             const itemKey = key as keyof RemoteSetupChecklist;
             return (
@@ -145,7 +145,7 @@ export function ChildSettings() {
           onClick={saveRemoteHelpSetup}
           className="w-full rounded-2xl bg-teal-600 py-3 text-sm font-semibold text-white"
         >
-          Join screen share and remote access
+          Open remote support demo
         </button>
       </section>
 
@@ -241,8 +241,7 @@ export function ChildSettings() {
           <strong>PWA:</strong> Install via browser menu - Add to Home Screen
         </p>
         <p className="mt-2">
-          <strong>Test:</strong> Chrome DevTools at 375px width, or deploy to Vercel / ngrok for
-          real-device testing.
+          <strong>Prototype:</strong> Screen sharing and remote control are simulated in the browser.
         </p>
       </section>
     </div>

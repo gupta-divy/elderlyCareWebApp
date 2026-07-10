@@ -27,7 +27,8 @@ function ProtectedRoute({
   children: React.ReactNode;
   role: 'child' | 'parent';
 }) {
-  const { currentUser } = useApp();
+  const { currentUser, isHydrated } = useApp();
+  if (!isHydrated) return null;
   if (!currentUser) return <Navigate to="/" replace />;
   if (currentUser.role !== role) {
     return <Navigate to={role === 'parent' ? '/parent' : '/child'} replace />;
@@ -36,14 +37,14 @@ function ProtectedRoute({
 }
 
 export default function App() {
-  const { currentUser } = useApp();
+  const { currentUser, isHydrated } = useApp();
 
   return (
     <Routes>
       <Route
         path="/"
         element={
-          currentUser ? (
+          !isHydrated ? null : currentUser ? (
             <Navigate
               to={currentUser.role === 'parent' ? '/parent' : '/child'}
               replace
@@ -78,44 +79,46 @@ export default function App() {
         }
       />
       <Route
+        path="/parent"
         element={
           <ProtectedRoute role="parent">
             <Layout />
           </ProtectedRoute>
         }
       >
-        <Route path="/parent" element={<ParentHome />} />
-        <Route path="/parent/tasks" element={<ParentTasks />} />
-        <Route path="/parent/emergency" element={<ParentEmergency />} />
-        <Route path="/parent/remote-help" element={<ParentRemoteHelpScreen />} />
-        <Route path="/parent/create-contact" element={<CreateContactScreen />} />
-        <Route path="/parent/documents" element={<DocumentsScreen />} />
+        <Route index element={<ParentHome />} />
+        <Route path="tasks" element={<ParentTasks />} />
+        <Route path="emergency" element={<ParentEmergency />} />
+        <Route path="remote-help" element={<ParentRemoteHelpScreen />} />
+        <Route path="create-contact" element={<CreateContactScreen />} />
+        <Route path="documents" element={<DocumentsScreen />} />
         <Route
-          path="/parent/documents/:categoryId"
+          path="documents/:categoryId"
           element={<DocumentFolderScreen />}
         />
       </Route>
       <Route
+        path="/child"
         element={
           <ProtectedRoute role="child">
             <Layout />
           </ProtectedRoute>
         }
       >
-        <Route path="/child" element={<ChildDashboard />} />
-        <Route path="/child/tasks" element={<ChildTasks />} />
-        <Route path="/child/documents" element={<ChildDocuments />} />
+        <Route index element={<ChildDashboard />} />
+        <Route path="tasks" element={<ChildTasks />} />
+        <Route path="documents" element={<ChildDocuments />} />
         <Route
-          path="/child/documents/:categoryId"
+          path="documents/:categoryId"
           element={<ChildDocumentFolderScreen />}
         />
         <Route
-          path="/child/family-vault/:photoId"
+          path="family-vault/:photoId"
           element={<FamilyVaultPreviewScreen />}
         />
-        <Route path="/child/remote-support/join" element={<ChildJoinScreenShareScreen />} />
-        <Route path="/child/remote-support" element={<ChildRemoteSupportScreen />} />
-        <Route path="/child/settings" element={<ChildSettings />} />
+        <Route path="remote-support/join" element={<ChildJoinScreenShareScreen />} />
+        <Route path="remote-support" element={<ChildRemoteSupportScreen />} />
+        <Route path="settings" element={<ChildSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

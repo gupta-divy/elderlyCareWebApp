@@ -12,11 +12,11 @@ type ParentAction = {
 };
 
 const parentActions: ParentAction[] = [
-  { id: 'send-photo', label: 'Send Photo', icon: '📷' },
-  { id: 'video-call', label: 'Video Call', icon: '📹' },
-  { id: 'documents', label: 'Documents', icon: '📄' },
-  { id: 'share-screen', label: 'Share Screen', icon: '🖥️' },
-  { id: 'create-contact', label: 'Create Contact', icon: '👤' },
+  { id: 'send-photo', label: 'Send Photo', icon: 'Camera' },
+  { id: 'video-call', label: 'Video Call', icon: 'Call' },
+  { id: 'documents', label: 'Documents', icon: 'Docs' },
+  { id: 'share-screen', label: 'Share Screen', icon: 'Help' },
+  { id: 'create-contact', label: 'Create Contact', icon: 'Add' },
 ];
 
 export function ParentHome() {
@@ -61,17 +61,17 @@ export function ParentHome() {
   return (
     <div className="space-y-5">
       <section className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
               Parent Home
             </p>
-            <p className="mt-2 text-3xl font-bold text-slate-800">{parent.name}</p>
+            <p className="mt-2 break-words text-3xl font-bold text-slate-800">{parent.name}</p>
             <p className="mt-1 text-base text-slate-500">{parent.city}</p>
           </div>
           <div className="rounded-2xl bg-amber-50 px-4 py-3 text-center shadow-sm">
             <p className="text-3xl font-bold text-amber-600">{summary.pending}</p>
-            <p className="text-sm font-semibold text-amber-800">today&apos;s tasks</p>
+            <p className="text-sm font-semibold text-amber-800">today's tasks</p>
           </div>
         </div>
       </section>
@@ -126,7 +126,7 @@ export function ParentHome() {
               <button
                 type="button"
                 onClick={showPreviousPhoto}
-                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 px-3 py-3 text-xl font-bold text-white"
+                className="absolute left-4 top-1/2 min-h-11 min-w-11 -translate-y-1/2 rounded-full bg-black/50 px-3 py-3 text-xl font-bold text-white"
                 aria-label="Previous photo"
               >
                 {'<'}
@@ -134,7 +134,7 @@ export function ParentHome() {
               <button
                 type="button"
                 onClick={showNextPhoto}
-                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 px-3 py-3 text-xl font-bold text-white"
+                className="absolute right-4 top-1/2 min-h-11 min-w-11 -translate-y-1/2 rounded-full bg-black/50 px-3 py-3 text-xl font-bold text-white"
                 aria-label="Next photo"
               >
                 {'>'}
@@ -187,11 +187,16 @@ export function ParentHome() {
 
               if (action.id === 'share-screen') {
                 navigate('/parent/remote-help');
+                return;
+              }
+
+              if (action.id === 'video-call') {
+                window.alert('Prototype demo: video calling will open from the family call provider in a future version.');
               }
             }}
             className="!items-start !rounded-[28px] !border-0 !bg-white !px-6 !py-5 !text-left !text-slate-800 !shadow-[0_14px_32px_rgba(15,23,42,0.08)]"
             labelClassName="text-[1.45rem] leading-tight"
-            iconClassName="text-[1.7rem]"
+            iconClassName="max-w-[96px] text-right text-base font-bold"
           >
             {action.label}
           </BigButton>

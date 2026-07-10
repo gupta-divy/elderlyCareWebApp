@@ -76,7 +76,7 @@ export async function saveDeviceContact(
   if (!bridge?.saveContact) {
     return {
       status: 'unavailable',
-      message: 'Contact saving is available in the Android app',
+      message: 'Prototype demo: browser contact saving is not available. Please use this as a sample flow.',
     };
   }
 

@@ -146,13 +146,13 @@ export function ChildTasks() {
         </button>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex flex-wrap gap-2 pb-1">
         {(['all', 'pending', 'done', 'missed'] as const).map((value) => (
           <button
             key={value}
             type="button"
             onClick={() => setFilter(value)}
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium capitalize ${
+            className={`shrink-0 rounded-full px-3 py-2 text-xs font-medium capitalize ${
               filter === value ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'
             }`}
           >
@@ -350,7 +350,7 @@ export function ChildTasks() {
                 </p>
               ) : null}
 
-              <div className="mt-2 flex flex-wrap gap-3 text-xs">
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <button
                   type="button"
                   onClick={() => {
@@ -368,14 +368,14 @@ export function ChildTasks() {
                     setShowForm(true);
                     setSuccessMessage('');
                   }}
-                  className="text-teal-600 underline"
+                  className="rounded-full bg-teal-50 px-3 py-2 font-semibold text-teal-700"
                 >
                   Edit
                 </button>
                 <button
                   type="button"
                   onClick={() => setTaskEnabled(task.id, !task.isActive)}
-                  className="text-amber-600 underline"
+                  className="rounded-full bg-amber-50 px-3 py-2 font-semibold text-amber-700"
                 >
                   {task.isActive ? 'Pause' : 'Resume'}
                 </button>
@@ -387,7 +387,7 @@ export function ChildTasks() {
                         deleteTaskOccurrence(task.occurrenceId);
                       }
                     }}
-                    className="text-rose-500 underline"
+                    className="rounded-full bg-rose-50 px-3 py-2 font-semibold text-rose-600"
                   >
                     Delete missed record
                   </button>
@@ -399,7 +399,7 @@ export function ChildTasks() {
                         deleteTask(task.id);
                       }
                     }}
-                    className="text-rose-500 underline"
+                    className="rounded-full bg-rose-50 px-3 py-2 font-semibold text-rose-600"
                   >
                     Delete task
                   </button>

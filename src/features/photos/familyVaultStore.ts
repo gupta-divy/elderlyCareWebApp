@@ -6,7 +6,9 @@ export type FamilyVaultPhoto = {
   sharedAt: string;
 };
 
-const STORAGE_KEY = 'eldercare-connect-family-vault';
+const STORAGE_KEY =
+  import.meta.env.VITE_ELDERCARE_PHOTO_STORAGE_KEY ||
+  'eldercare-connect-family-vault';
 
 const SEED_PHOTOS: FamilyVaultPhoto[] = [
   {

@@ -46,6 +46,7 @@ type PendingTaskPhotoFlow = {
 
 type AppContextValue = {
   state: AppState;
+  isHydrated: boolean;
   currentUser: User | null;
   selectedParent: ParentProfile | null;
   login: (userId: string) => void;
@@ -116,6 +117,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(EMPTY_STATE);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [pendingTaskPhotoFlow, setPendingTaskPhotoFlow] = useState<PendingTaskPhotoFlow | null>(null);
 
   useEffect(() => {
@@ -123,6 +125,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void localBackend.loadState().then((loadedState) => {
       if (isMounted) {
         setState(markMissedTaskOccurrences(normalizeTaskState(loadedState)));
+        setIsHydrated(true);
       }
     });
     return () => {
@@ -625,6 +628,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value: AppContextValue = {
     state,
+    isHydrated,
     currentUser,
     selectedParent,
     login,

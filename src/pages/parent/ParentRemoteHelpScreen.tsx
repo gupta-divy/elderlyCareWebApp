@@ -5,9 +5,9 @@ import { formatTime } from '../../utils/helpers';
 
 const checklistLabels = [
   { key: 'explainedScreenSharing', label: 'Screen sharing explained during setup' },
-  { key: 'accessibilityServiceEnabled', label: 'AccessibilityService enabled once by child' },
+  { key: 'accessibilityServiceEnabled', label: 'Remote support explained' },
   { key: 'notificationPermissionGranted', label: 'Notifications allowed' },
-  { key: 'whatsAppInstalled', label: 'WhatsApp installed and verified' },
+  { key: 'whatsAppInstalled', label: 'WhatsApp sharing available' },
 ] as const;
 
 export function ParentRemoteHelpScreen() {
@@ -132,17 +132,17 @@ export function ParentRemoteHelpScreen() {
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-100 px-3 py-2 text-right text-sm text-slate-600">
-                <p>Screen sharing is {activeSession.screenShareOn ? 'ON' : 'OFF'}</p>
-                <p>Remote control is {activeSession.remoteControlOn ? 'ON' : 'OFF'}</p>
+                <p>Screen demo is {activeSession.screenShareOn ? 'ON' : 'OFF'}</p>
+                <p>Control demo is {activeSession.remoteControlOn ? 'ON' : 'OFF'}</p>
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
                   Code
                 </p>
-                <p className="mt-2 text-4xl font-black tracking-[0.28em] text-slate-900">
+                <p className="mt-2 break-all text-3xl font-black tracking-[0.18em] text-slate-900">
                   {activeSession.sessionCode}
                 </p>
               </div>
@@ -177,7 +177,7 @@ export function ParentRemoteHelpScreen() {
 
       {activeSession ? (
         <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-lg border-t border-slate-200 bg-white/98 p-4 shadow-[0_-12px_32px_rgba(15,23,42,0.16)] backdrop-blur safe-area-bottom">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             <BigButton
               variant={activeSession.mediaProjectionApproved ? 'success' : 'secondary'}
               onClick={() =>
@@ -186,7 +186,7 @@ export function ParentRemoteHelpScreen() {
                   : enableScreenShareForSession(activeSession.id)
               }
               className="!rounded-[22px] !px-3 !py-4"
-              labelClassName="text-lg leading-tight"
+              labelClassName="text-sm leading-tight"
             >
               Screen Share
             </BigButton>
@@ -199,7 +199,7 @@ export function ParentRemoteHelpScreen() {
               }
               disabled={!activeSession.screenShareOn}
               className="!rounded-[22px] !px-3 !py-4"
-              labelClassName="text-lg leading-tight"
+              labelClassName="text-sm leading-tight"
             >
               Remote Control
             </BigButton>
@@ -207,7 +207,7 @@ export function ParentRemoteHelpScreen() {
               variant="danger"
               onClick={() => stopRemoteHelpSession(activeSession.id, 'parent_stopped')}
               className="!rounded-[22px] !px-3 !py-4"
-              labelClassName="text-lg leading-tight"
+              labelClassName="text-sm leading-tight"
             >
               Stop
             </BigButton>

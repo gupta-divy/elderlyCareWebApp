@@ -40,7 +40,7 @@ export function BigButton({
       <div
         className={`flex w-full items-center ${isIconRight ? 'flex-row justify-between gap-4' : 'flex-col justify-center gap-2'}`}
       >
-        <span className={labelClassName}>{children}</span>
+        <span className={`min-w-0 break-words ${labelClassName}`}>{children}</span>
         {icon && (
           <span className={`${isIconRight ? 'text-2xl' : 'text-3xl'} ${iconClassName}`}>
             {icon}

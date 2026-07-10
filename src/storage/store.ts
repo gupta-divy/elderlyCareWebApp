@@ -17,17 +17,18 @@ import type {
 } from '../types';
 import { generateId, toDateKey } from '../utils/helpers';
 
-const STORAGE_KEY = 'eldercare-connect-state';
+const STORAGE_KEY =
+  import.meta.env.VITE_ELDERCARE_STORAGE_KEY || 'eldercare-connect-state';
 
 type LegacyTask = {
   id: string;
   parentId: string;
   title: string;
   time: string;
-  repeat: TaskRepeat;
+  repeat: TaskRepeat | 'once';
   requiresProof: boolean;
   isCritical: boolean;
-  status: TaskStatus;
+  status: TaskStatus | 'completed';
   proofUrl?: string;
   createdAt: string;
 };

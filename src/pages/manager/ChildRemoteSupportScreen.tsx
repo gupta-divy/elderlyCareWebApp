@@ -24,8 +24,8 @@ export function ChildRemoteSupportScreen() {
         </p>
         <h2 className="mt-2 text-3xl font-bold text-slate-800">Live view and guided control</h2>
         <p className="mt-2 text-sm text-slate-500">
-          When a parent sends a WhatsApp session code, you join from inside the ElderCare app and
-          request control only when they need it.
+          When a parent sends a WhatsApp session code, you can join this browser prototype and
+          request a simulated control session only when they need it.
         </p>
       </section>
 
@@ -64,22 +64,22 @@ export function ChildRemoteSupportScreen() {
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-100 px-3 py-2 text-right text-sm text-slate-600">
-                <p>Screen sharing is {session.screenShareOn ? 'ON' : 'OFF'}</p>
-                <p>Remote control is {session.remoteControlOn ? 'ON' : 'OFF'}</p>
+                <p>Screen demo is {session.screenShareOn ? 'ON' : 'OFF'}</p>
+                <p>Control demo is {session.remoteControlOn ? 'ON' : 'OFF'}</p>
               </div>
             </div>
 
             <div className="rounded-[28px] border border-slate-200 bg-linear-to-br from-slate-900 via-slate-800 to-slate-700 p-4 text-white">
               <div className="flex items-center justify-between text-xs uppercase tracking-[0.16em] text-slate-300">
-                <span>Live Screen Stream</span>
-                <span>WebRTC Viewer</span>
+                <span>Live Screen Demo</span>
+                <span>Browser Viewer</span>
               </div>
               <div className="mt-4 flex h-64 items-center justify-center rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.25),_transparent_45%),linear-gradient(180deg,_rgba(255,255,255,0.08),_rgba(255,255,255,0.02))]">
                 <div className="max-w-xs text-center">
                   <p className="text-xl font-semibold">Live parent screen preview</p>
                   <p className="mt-2 text-sm text-slate-300">
-                    Coordinate mapping converts browser taps to the parent phone&apos;s real screen.
-                    Control events stay rate-limited over the WebRTC data channel.
+                    This shareable prototype simulates the support view. Real screen streaming and
+                    control would be integrated with a secure provider later.
                   </p>
                 </div>
               </div>
@@ -109,28 +109,28 @@ export function ChildRemoteSupportScreen() {
                     className="rounded-2xl bg-white px-4 py-4 text-left shadow-sm"
                   >
                     <p className="font-semibold text-slate-800">Tap</p>
-                    <p className="mt-1 text-sm text-slate-500">Single tap forwarded through AccessibilityService</p>
+                    <p className="mt-1 text-sm text-slate-500">Prototype tap action for the demo session</p>
                   </button>
                   <button
                     type="button"
                     className="rounded-2xl bg-white px-4 py-4 text-left shadow-sm"
                   >
                     <p className="font-semibold text-slate-800">Swipe</p>
-                    <p className="mt-1 text-sm text-slate-500">Drag gesture mapped to parent screen coordinates</p>
+                    <p className="mt-1 text-sm text-slate-500">Prototype swipe action for the demo session</p>
                   </button>
                   <button
                     type="button"
                     className="rounded-2xl bg-white px-4 py-4 text-left shadow-sm"
                   >
                     <p className="font-semibold text-slate-800">Back</p>
-                    <p className="mt-1 text-sm text-slate-500">System back action through AccessibilityService</p>
+                    <p className="mt-1 text-sm text-slate-500">Prototype back action for the demo session</p>
                   </button>
                   <button
                     type="button"
                     className="rounded-2xl bg-white px-4 py-4 text-left shadow-sm"
                   >
                     <p className="font-semibold text-slate-800">Text Input</p>
-                    <p className="mt-1 text-sm text-slate-500">Allowed where Android accessibility can edit text</p>
+                    <p className="mt-1 text-sm text-slate-500">Prototype text action for the demo session</p>
                   </button>
                 </div>
               </div>

@@ -32,8 +32,7 @@ export function ChildJoinScreenShareScreen() {
         </p>
         <h2 className="mt-2 text-3xl font-bold text-slate-800">Enter parent session code</h2>
         <p className="mt-2 text-sm text-slate-500">
-          Type the code the parent shared with you to join their live screen share session inside
-          the app.
+          Type the code the parent shared with you to join their simulated screen share session.
         </p>
       </section>
 

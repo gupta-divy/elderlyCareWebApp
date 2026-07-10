@@ -20,27 +20,10 @@ export function ChildDocumentFolderScreen() {
   const items = useMemo(() => {
     if (!category) return [];
 
-    return state.documents
-      .filter((doc) => doc.category === category.id && !!doc.fileUrl)
-      .sort((a, b) => b.uploadDate.localeCompare(a.uploadDate))
-      .map((doc): DocumentItem => ({
-        id: doc.id,
-        categoryId: doc.category,
-        name: doc.name,
-        type:
-          doc.fileType ??
-          (doc.fileUrl.startsWith('data:image/')
-            ? 'image'
-            : doc.fileUrl.startsWith('data:application/pdf')
-              ? 'pdf'
-              : 'other'),
-        uri: doc.fileUrl,
-        thumbnailUri:
-          doc.fileType === 'image' || doc.fileUrl.startsWith('data:image/')
-            ? doc.thumbnailUrl ?? doc.fileUrl
-            : undefined,
-        createdAt: doc.uploadDate,
-      }));
+    return mockDocumentsRepository.getDocumentsForCategory(
+      category.id,
+      state.documents,
+    );
   }, [category, state.documents]);
 
   if (!category) {
