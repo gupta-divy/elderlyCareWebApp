@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="960" viewBox="0 0 720 960">
+  <rect width="720" height="960" fill="#f8fafc"/>
+  <rect x="62" y="56" width="596" height="848" rx="34" fill="#ffffff" stroke="#cbd5e1" stroke-width="4"/>
+  <rect x="98" y="108" width="220" height="64" rx="18" fill="#0f766e"/>
+  <text x="208" y="150" text-anchor="middle" font-size="34" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#ffffff">Medical</text>
+  <text x="100" y="236" font-size="40" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#0f172a">Dr. Mehta Prescription</text>
+  <text x="100" y="286" font-size="28" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#475569">Morning tablet after breakfast</text>
+  <text x="100" y="336" font-size="28" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#475569">Blood pressure check every week</text>
+  <text x="100" y="386" font-size="28" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#475569">Keep this note for the next visit</text>
+  <line x1="100" y1="468" x2="620" y2="468" stroke="#cbd5e1" stroke-width="4"/>
+  <line x1="100" y1="548" x2="620" y2="548" stroke="#cbd5e1" stroke-width="4"/>
+  <line x1="100" y1="628" x2="620" y2="628" stroke="#cbd5e1" stroke-width="4"/>
+  <line x1="100" y1="708" x2="620" y2="708" stroke="#cbd5e1" stroke-width="4"/>
+  <text x="100" y="834" font-size="26" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#64748b">Shared for easy viewing in ElderCare Connect</text>
+</svg>

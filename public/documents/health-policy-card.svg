@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="620" viewBox="0 0 960 620">
+  <defs>
+    <linearGradient id="card" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0f766e"/>
+      <stop offset="100%" stop-color="#155e75"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="620" fill="#ecfeff"/>
+  <rect x="72" y="72" width="816" height="476" rx="36" fill="url(#card)"/>
+  <text x="118" y="166" font-size="42" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#f8fafc">Health Policy Card</text>
+  <text x="118" y="232" font-size="30" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#ccfbf1">Care Secure Family Plan</text>
+  <rect x="118" y="292" width="300" height="160" rx="24" fill="#ffffff" fill-opacity="0.2"/>
+  <text x="146" y="348" font-size="28" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#ffffff">Member</text>
+  <text x="146" y="394" font-size="34" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#ffffff">Ramesh Sharma</text>
+  <text x="146" y="438" font-size="24" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#ccfbf1">Policy No. HC-2048-7781</text>
+  <circle cx="742" cy="246" r="92" fill="#ffffff" fill-opacity="0.18"/>
+  <circle cx="742" cy="246" r="58" fill="#ffffff" fill-opacity="0.22"/>
+  <text x="118" y="510" font-size="24" font-family="Trebuchet MS, Segoe UI, sans-serif" fill="#ccfbf1">Keep this card handy for hospital visits</text>
+</svg>

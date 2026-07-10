@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": false,
+    "outDir": ".codex-tests",
+    "rootDir": "src",
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/domain/**/*.ts",
+    "src/features/tasks/**/*.ts",
+    "src/types/**/*.ts",
+    "src/utils/helpers.ts",
+    "src/data/seed.ts"
+  ]
+}

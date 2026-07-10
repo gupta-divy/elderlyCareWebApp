@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Trebuchet MS", "Aptos", "Segoe UI", system-ui, sans-serif;
+  --color-teal-50: #f0fdfa;
+  --color-teal-600: #0d9488;
+  --color-teal-700: #0f766e;
+  --color-teal-800: #115e59;
+  --color-sky-50: #eff6ff;
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-500: #f59e0b;
+  --color-rose-600: #e11d48;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(254, 243, 199, 0.9), transparent 32%),
+    linear-gradient(180deg, #f7fffc 0%, #edf8f6 55%, #e7f1ef 100%);
+  @apply text-slate-800 antialiased;
+  min-height: 100dvh;
+}
+
+/* Parent mode: larger touch targets */
+.parent-touch {
+  min-height: 72px;
+  font-size: 1.25rem;
+}
+
+#root {
+  min-height: 100dvh;
+}
