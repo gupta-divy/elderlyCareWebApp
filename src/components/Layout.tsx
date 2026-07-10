@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { ModeBadge } from './ModeBadge';
 
 type NavItem = { to: string; label: string; icon: string };
 
@@ -44,7 +43,6 @@ export function Layout() {
               <p className="truncate text-sm text-teal-50/90">{currentUser?.name}</p>
             </div>
           </div>
-          <ModeBadge />
         </div>
 
         {showAccountMenu ? (
