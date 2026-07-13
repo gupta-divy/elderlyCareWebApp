@@ -93,7 +93,7 @@ export function getNextOccurrenceForInput(input: TaskFormInput, now = new Date()
   const currentDay = startOfDay(now);
 
   switch (input.repeat) {
-    case 'none':
+    case 'once':
       if (input.startDate) {
         return anchorDateTime;
       }
@@ -172,7 +172,7 @@ export function getNextOccurrenceAfterTask(
     requiresPhoto: task.requiresPhoto,
   };
 
-  if (task.repeat === 'none') {
+  if (task.repeat === 'once') {
     const onlyOccurrence = getNextOccurrenceForInput(input, startDate);
     return onlyOccurrence.getTime() > after.getTime() ? onlyOccurrence : undefined;
   }
@@ -192,4 +192,49 @@ export function isOccurrenceOverdue(
   const dueTime = new Date(occurrence.scheduledFor);
   dueTime.setMinutes(dueTime.getMinutes() + graceMinutes);
   return now.getTime() > dueTime.getTime();
+}
+
+export function doesTaskOccurOnDate(
+  task: Pick<TaskTemplate, 'startDate' | 'repeat' | 'selectedWeekdays'>,
+  date: Date,
+): boolean {
+  const dateKey = toDateKey(date);
+  const startDateKey = task.startDate ?? dateKey;
+  const start = startOfDay(new Date(`${startDateKey}T00:00:00`));
+  const target = startOfDay(new Date(`${dateKey}T00:00:00`));
+
+  if (target.getTime() < start.getTime()) return false;
+
+  switch (task.repeat) {
+    case 'once':
+      return dateKey === startDateKey;
+    case 'daily':
+      return true;
+    case 'weekly':
+      return target.getDay() === start.getDay();
+    case 'monthly': {
+      const targetDay = target.getDate();
+      const scheduledDay = Math.min(
+        start.getDate(),
+        lastDayOfMonth(target.getFullYear(), target.getMonth()),
+      );
+      return targetDay === scheduledDay;
+    }
+    case 'yearly': {
+      const scheduled = resolveYearlyDate(
+        target.getFullYear(),
+        start.getMonth(),
+        start.getDate(),
+      );
+      return toDateKey(scheduled) === dateKey;
+    }
+    case 'set_days':
+      return Boolean(task.selectedWeekdays?.includes(target.getDay() as TaskWeekday));
+    default:
+      return false;
+  }
+}
+
+export function getScheduledForLocalDate(dateKey: string, time: string): string {
+  return combineLocalDateAndTime(dateKey, time).toISOString();
 }

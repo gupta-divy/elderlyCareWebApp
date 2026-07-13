@@ -60,7 +60,7 @@ function migrateLegacyTasks(tasks: LegacyTask[] | undefined): Pick<AppState, 'ta
     createdByChildId: 'child-1',
     title: task.title,
     time: task.time,
-    repeat: task.repeat === 'once' ? 'none' : task.repeat,
+    repeat: task.repeat === 'once' ? 'once' : task.repeat,
     ringAlarm: task.isCritical,
     requiresPhoto: task.requiresProof,
     isActive: true,

@@ -6,6 +6,8 @@ exports.getNextOccurrenceForInput = getNextOccurrenceForInput;
 exports.getNextOccurrenceAfterTask = getNextOccurrenceAfterTask;
 exports.buildOccurrenceId = buildOccurrenceId;
 exports.isOccurrenceOverdue = isOccurrenceOverdue;
+exports.doesTaskOccurOnDate = doesTaskOccurOnDate;
+exports.getScheduledForLocalDate = getScheduledForLocalDate;
 const helpers_1 = require("../../utils/helpers");
 exports.TASK_GRACE_PERIOD_MINUTES = 120;
 function parseTimeParts(time) {
@@ -60,7 +62,7 @@ function getNextOccurrenceForInput(input, now = new Date()) {
     const anchorDateTime = combineLocalDateAndTime(anchorDateKey, input.time);
     const currentDay = (0, helpers_1.startOfDay)(now);
     switch (input.repeat) {
-        case 'none':
+        case 'once':
             if (input.startDate) {
                 return anchorDateTime;
             }
@@ -122,7 +124,7 @@ function getNextOccurrenceAfterTask(task, after) {
         ringAlarm: task.ringAlarm,
         requiresPhoto: task.requiresPhoto,
     };
-    if (task.repeat === 'none') {
+    if (task.repeat === 'once') {
         const onlyOccurrence = getNextOccurrenceForInput(input, startDate);
         return onlyOccurrence.getTime() > after.getTime() ? onlyOccurrence : undefined;
     }
@@ -135,4 +137,36 @@ function isOccurrenceOverdue(occurrence, now, graceMinutes = exports.TASK_GRACE_
     const dueTime = new Date(occurrence.scheduledFor);
     dueTime.setMinutes(dueTime.getMinutes() + graceMinutes);
     return now.getTime() > dueTime.getTime();
+}
+function doesTaskOccurOnDate(task, date) {
+    const dateKey = (0, helpers_1.toDateKey)(date);
+    const startDateKey = task.startDate ?? dateKey;
+    const start = (0, helpers_1.startOfDay)(new Date(`${startDateKey}T00:00:00`));
+    const target = (0, helpers_1.startOfDay)(new Date(`${dateKey}T00:00:00`));
+    if (target.getTime() < start.getTime())
+        return false;
+    switch (task.repeat) {
+        case 'once':
+            return dateKey === startDateKey;
+        case 'daily':
+            return true;
+        case 'weekly':
+            return target.getDay() === start.getDay();
+        case 'monthly': {
+            const targetDay = target.getDate();
+            const scheduledDay = Math.min(start.getDate(), lastDayOfMonth(target.getFullYear(), target.getMonth()));
+            return targetDay === scheduledDay;
+        }
+        case 'yearly': {
+            const scheduled = resolveYearlyDate(target.getFullYear(), start.getMonth(), start.getDate());
+            return (0, helpers_1.toDateKey)(scheduled) === dateKey;
+        }
+        case 'set_days':
+            return Boolean(task.selectedWeekdays?.includes(target.getDay()));
+        default:
+            return false;
+    }
+}
+function getScheduledForLocalDate(dateKey, time) {
+    return combineLocalDateAndTime(dateKey, time).toISOString();
 }

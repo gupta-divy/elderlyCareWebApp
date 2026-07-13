@@ -6,7 +6,9 @@ import {
   getTodayFamilyVaultPhotos,
   type FamilyVaultPhoto,
 } from '../../features/photos/familyVaultStore';
+import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 import { averageSteps, formatTime } from '../../utils/helpers';
+import type { ParentProfile } from '../../types';
 
 function SharedTodayPhotoCarousel() {
   const navigate = useNavigate();
@@ -113,26 +115,18 @@ function SharedTodayPhotoCarousel() {
   );
 }
 
-export function ChildDashboard() {
-  const { getLinkedParents, getTaskSummary } = useApp();
-  const parents = getLinkedParents();
+function ParentSummaryCard({ parent }: { parent: ParentProfile }) {
+  const { todayTasks } = useCloudTasks(parent.id);
+  const summary = {
+    pending: todayTasks.filter((task) => task.status === 'pending').length,
+    missed: todayTasks.filter((task) => task.status === 'missed').length,
+    done: todayTasks.filter((task) => task.status === 'done').length,
+  };
+  const avg = averageSteps(parent.stepsData);
+  const todaySteps = parent.stepsData[parent.stepsData.length - 1]?.count ?? 0;
 
   return (
-    <div className="space-y-6">
-      <SharedTodayPhotoCarousel />
-
-      <section className="space-y-4">
-
-        {parents.map((parent) => {
-          const summary = getTaskSummary(parent.id);
-          const avg = averageSteps(parent.stepsData);
-          const todaySteps = parent.stepsData[parent.stepsData.length - 1]?.count ?? 0;
-
-          return (
-            <article
-              key={parent.id}
-              className="space-y-4 rounded-[28px] border border-white/70 bg-white/95 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
-            >
+    <article className="space-y-4 rounded-[28px] border border-white/70 bg-white/95 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-2xl font-bold text-slate-800">{parent.name}</h3>
@@ -181,8 +175,21 @@ export function ChildDashboard() {
                 </div>
               </div>
             </article>
-          );
-        })}
+  );
+}
+
+export function ChildDashboard() {
+  const { getLinkedParents } = useApp();
+  const parents = getLinkedParents();
+
+  return (
+    <div className="space-y-6">
+      <SharedTodayPhotoCarousel />
+
+      <section className="space-y-4">
+        {parents.map((parent) => (
+          <ParentSummaryCard key={parent.id} parent={parent} />
+        ))}
       </section>
     </div>
   );

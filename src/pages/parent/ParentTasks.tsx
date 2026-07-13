@@ -2,15 +2,16 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BigButton } from '../../components/BigButton';
 import { useApp } from '../../context/AppContext';
-import type { TaskView } from '../../types';
-import { formatDate, formatLocalTime } from '../../utils/helpers';
+import type { CloudTaskView } from '../../features/tasks/taskData';
+import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 import { repeatLabel } from '../../features/tasks/taskValidation';
+import { formatDate, formatLocalTime } from '../../utils/helpers';
 
 function TaskCard({
   task,
   onComplete,
 }: {
-  task: TaskView;
+  task: CloudTaskView;
   onComplete: () => void;
 }) {
   const statusColors = {
@@ -25,7 +26,7 @@ function TaskCard({
         <div>
           <h3 className="text-xl font-bold text-slate-800">{task.title}</h3>
           <p className="text-lg text-slate-600">
-            {formatLocalTime(task.time)} • {formatDate(task.scheduledFor)}
+            {formatLocalTime(task.time)} - {formatDate(task.scheduledFor)}
           </p>
           <p className="text-sm text-slate-500">{repeatLabel(task.repeat)}</p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -63,7 +64,7 @@ function TaskCard({
       {task.completedAt ? (
         <p className="mt-3 text-sm text-slate-600">
           Done on {formatDate(task.completedAt)}
-          {task.photoConfirmed ? ' • Photo confirmed' : ''}
+          {task.photoConfirmed ? ' - Photo confirmed' : ''}
         </p>
       ) : null}
 
@@ -81,33 +82,85 @@ function TaskCard({
   );
 }
 
+function TaskGroup({
+  title,
+  tasks,
+  onComplete,
+}: {
+  title: string;
+  tasks: CloudTaskView[];
+  onComplete: (task: CloudTaskView) => void;
+}) {
+  return (
+    <section className="space-y-3">
+      <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">{title}</h3>
+      {tasks.length === 0 ? (
+        <p className="rounded-xl bg-white p-4 text-sm text-slate-500 shadow-sm">No {title.toLowerCase()} tasks.</p>
+      ) : (
+        tasks.map((task) => (
+          <TaskCard key={task.occurrenceId} task={task} onComplete={() => onComplete(task)} />
+        ))
+      )}
+    </section>
+  );
+}
+
 export function ParentTasks() {
   const {
     cancelTaskPhotoFlow,
-    completeTask,
-    confirmTaskPhotoFlow,
-    getTasksForParent,
     pendingTaskPhotoFlow,
     selectedParent,
     startTaskPhotoFlow,
   } = useApp();
   const navigate = useNavigate();
-  const [busyOccurrenceId, setBusyOccurrenceId] = useState<string | null>(null);
   const parent = selectedParent;
-  const tasks = useMemo(
-    () => (parent ? getTasksForParent(parent.id) : []),
-    [getTasksForParent, parent],
+  const {
+    completeTask,
+    error,
+    loading,
+    refresh,
+    saving,
+    todayTasks,
+  } = useCloudTasks(parent?.id);
+  const [busyOccurrenceId, setBusyOccurrenceId] = useState<string | null>(null);
+
+  const grouped = useMemo(
+    () => ({
+      pending: todayTasks.filter((task) => task.status === 'pending'),
+      completed: todayTasks.filter((task) => task.status === 'done'),
+      missed: todayTasks.filter((task) => task.status === 'missed'),
+    }),
+    [todayTasks],
   );
 
   if (!parent) return null;
 
   const flowTask = pendingTaskPhotoFlow
-    ? tasks.find((task) => task.occurrenceId === pendingTaskPhotoFlow.occurrenceId)
+    ? todayTasks.find((task) => task.occurrenceId === pendingTaskPhotoFlow.occurrenceId)
     : undefined;
+
+  const handleComplete = async (task: CloudTaskView, photoPath?: string | null) => {
+    if (busyOccurrenceId === task.occurrenceId || saving) return;
+    setBusyOccurrenceId(task.occurrenceId);
+    try {
+      await completeTask(task, photoPath);
+    } finally {
+      setBusyOccurrenceId(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-slate-800">Today's Tasks</h2>
+
+      {error ? (
+        <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <p>{error}</p>
+          <button type="button" onClick={() => void refresh()} className="mt-2 font-semibold">
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       {flowTask && pendingTaskPhotoFlow?.shareConfirmed ? (
         <div className="rounded-2xl border-2 border-teal-400 bg-teal-50 p-4">
@@ -115,14 +168,19 @@ export function ParentTasks() {
           <div className="mt-3 flex gap-3">
             <button
               type="button"
-              onClick={() => confirmTaskPhotoFlow(true)}
-              className="rounded-xl bg-teal-600 px-4 py-2 text-white"
+              disabled={saving}
+              onClick={() => {
+                void handleComplete(flowTask, pendingTaskPhotoFlow.proofUrl ?? null).then(() => {
+                  cancelTaskPhotoFlow();
+                });
+              }}
+              className="rounded-xl bg-teal-600 px-4 py-2 text-white disabled:opacity-60"
             >
-              Yes, mark done
+              {saving ? 'Saving...' : 'Yes, mark done'}
             </button>
             <button
               type="button"
-              onClick={() => confirmTaskPhotoFlow(false)}
+              onClick={() => cancelTaskPhotoFlow()}
               className="rounded-xl bg-white px-4 py-2 text-slate-700"
             >
               Not yet
@@ -131,29 +189,27 @@ export function ParentTasks() {
         </div>
       ) : null}
 
-      {tasks.length === 0 ? (
+      {loading ? (
+        <p className="text-center text-slate-500">Loading tasks...</p>
+      ) : todayTasks.length === 0 ? (
         <p className="text-center text-slate-500">No tasks right now. Rest well!</p>
       ) : (
-        tasks.map((task) => (
-          <TaskCard
-            key={task.occurrenceId}
-            task={task}
-            onComplete={() => {
-              if (busyOccurrenceId === task.occurrenceId) return;
-              setBusyOccurrenceId(task.occurrenceId);
-
+        <>
+          <TaskGroup
+            title="Pending"
+            tasks={grouped.pending}
+            onComplete={(task) => {
               if (task.requiresPhoto) {
                 startTaskPhotoFlow(task.occurrenceId, task.id);
                 navigate('/parent/send-photo', { state: { taskPhotoFlow: true } });
-                setBusyOccurrenceId(null);
                 return;
               }
-
-              completeTask(task.occurrenceId);
-              setBusyOccurrenceId(null);
+              void handleComplete(task);
             }}
           />
-        ))
+          <TaskGroup title="Completed" tasks={grouped.completed} onComplete={() => undefined} />
+          <TaskGroup title="Missed" tasks={grouped.missed} onComplete={() => undefined} />
+        </>
       )}
 
       {pendingTaskPhotoFlow && !pendingTaskPhotoFlow.shareConfirmed ? (

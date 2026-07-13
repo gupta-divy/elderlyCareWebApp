@@ -44,6 +44,20 @@ type PendingTaskPhotoFlow = {
   shareConfirmed: boolean;
 };
 
+export type AuthenticatedFamilyProfile = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: 'child' | 'parent';
+  whatsappNumber: string | null;
+};
+
+export type AuthenticatedProfileSync = AuthenticatedFamilyProfile & {
+  familyId: string;
+  familyCode: string;
+  familyProfiles: AuthenticatedFamilyProfile[];
+};
+
 type AppContextValue = {
   state: AppState;
   isHydrated: boolean;
@@ -51,6 +65,7 @@ type AppContextValue = {
   selectedParent: ParentProfile | null;
   login: (userId: string) => void;
   logout: () => void;
+  syncAuthenticatedProfile: (profile: AuthenticatedProfileSync) => void;
   switchRole: () => void;
   resetDemo: () => void;
   getParent: (id: string) => ParentProfile | undefined;
@@ -114,6 +129,16 @@ const EMPTY_STATE: AppState = {
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
+
+function emptyStepsData(): ParentProfile['stepsData'] {
+  const days: ParentProfile['stepsData'] = [];
+  for (let i = 6; i >= 0; i -= 1) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    days.push({ date: date.toISOString().slice(0, 10), count: 0 });
+  }
+  return days;
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(EMPTY_STATE);
@@ -190,6 +215,73 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentUserId: null,
       selectedParentId: null,
     }));
+  }, []);
+
+  const syncAuthenticatedProfile = useCallback((profile: AuthenticatedProfileSync) => {
+    setState((currentState) => {
+      const familyProfilesById = new Map<string, AuthenticatedFamilyProfile>();
+      for (const familyProfile of profile.familyProfiles) {
+        familyProfilesById.set(familyProfile.id, familyProfile);
+      }
+      familyProfilesById.set(profile.id, {
+        id: profile.id,
+        fullName: profile.fullName,
+        email: profile.email,
+        role: profile.role,
+        whatsappNumber: profile.whatsappNumber,
+      });
+
+      const familyProfiles = [...familyProfilesById.values()];
+      const parentIds = familyProfiles
+        .filter((familyProfile) => familyProfile.role === 'parent')
+        .map((familyProfile) => familyProfile.id);
+      const childIds = familyProfiles
+        .filter((familyProfile) => familyProfile.role === 'child')
+        .map((familyProfile) => familyProfile.id);
+
+      const nextUsersById = new Map(currentState.users.map((user) => [user.id, user]));
+      for (const familyProfile of familyProfiles) {
+        const linkedUsers = familyProfile.role === 'parent'
+          ? childIds.filter((id) => id !== familyProfile.id)
+          : parentIds.filter((id) => id !== familyProfile.id);
+
+        nextUsersById.set(familyProfile.id, {
+          ...(nextUsersById.get(familyProfile.id) ?? {}),
+          id: familyProfile.id,
+          name: familyProfile.fullName,
+          email: familyProfile.email,
+          phoneNumber: familyProfile.whatsappNumber ?? undefined,
+          role: familyProfile.role,
+          linkedUsers,
+        });
+      }
+
+      const nextParentsById = new Map(currentState.parents.map((parent) => [parent.id, parent]));
+      for (const familyProfile of familyProfiles) {
+        if (familyProfile.role !== 'parent') continue;
+        const existingParent = nextParentsById.get(familyProfile.id);
+        nextParentsById.set(familyProfile.id, {
+          id: familyProfile.id,
+          name: familyProfile.fullName,
+          city: existingParent?.city ?? 'Family workspace',
+          age: existingParent?.age ?? 0,
+          stepsData: existingParent?.stepsData ?? emptyStepsData(),
+          lastPhotoUrl: existingParent?.lastPhotoUrl ?? '',
+          lastPhotoTimestamp: existingParent?.lastPhotoTimestamp ?? new Date().toISOString(),
+        });
+      }
+
+      return {
+        ...currentState,
+        users: [...nextUsersById.values()],
+        parents: [...nextParentsById.values()],
+        currentUserId: profile.id,
+        selectedParentId:
+          profile.role === 'child'
+            ? parentIds[0] ?? null
+            : null,
+      };
+    });
   }, []);
 
   const switchRole = useCallback(() => {
@@ -633,6 +725,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectedParent,
     login,
     logout,
+    syncAuthenticatedProfile,
     switchRole,
     resetDemo,
     getParent,

@@ -22,7 +22,7 @@ function validateTaskInput(input, now = new Date()) {
     if (input.repeat === 'set_days' && input.selectedWeekdays.length === 0) {
         errors.selectedWeekdays = 'Choose at least one day.';
     }
-    if (input.repeat === 'none' && input.startDate) {
+    if (input.repeat === 'once' && input.startDate) {
         const nextOccurrence = (0, taskRecurrence_1.getNextOccurrenceForInput)({ ...input, title }, now);
         const selectedAt = new Date(`${input.startDate}T00:00:00`);
         const [hours, minutes] = input.time.split(':').map(Number);
@@ -35,7 +35,7 @@ function validateTaskInput(input, now = new Date()) {
 }
 function repeatLabel(repeat) {
     switch (repeat) {
-        case 'none':
+        case 'once':
             return 'Does not repeat';
         case 'daily':
             return 'Daily';

@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ParentSwitcher } from '../../components/ParentSwitcher';
 import { useApp } from '../../context/AppContext';
-import type { TaskStatus, TaskWeekday } from '../../types';
-import { formatDate, formatLocalTime } from '../../utils/helpers';
+import { useCloudTasks } from '../../features/tasks/useCloudTasks';
+import type { TaskFormInput } from '../../features/tasks/taskRecurrence';
 import {
   repeatLabel,
   trimTaskTitle,
   validateTaskInput,
   type TaskValidationErrors,
 } from '../../features/tasks/taskValidation';
-import type { TaskFormInput } from '../../features/tasks/taskRecurrence';
+import type { TaskWeekday } from '../../types';
+import { formatDate, formatLocalTime } from '../../utils/helpers';
 
 const weekdayOptions: Array<{ label: string; value: TaskWeekday }> = [
   { label: 'Su', value: 0 },
@@ -26,7 +27,7 @@ const emptyForm: TaskFormInput = {
   title: '',
   time: '08:00',
   startDate: '',
-  repeat: 'none',
+  repeat: 'once',
   selectedWeekdays: [],
   ringAlarm: false,
   requiresPhoto: false,
@@ -35,41 +36,39 @@ const emptyForm: TaskFormInput = {
 function describeTask(task: {
   repeat: TaskFormInput['repeat'];
   startDate?: string;
-  selectedWeekdays?: TaskWeekday[];
-  scheduledFor: string;
+  selectedWeekdays?: TaskWeekday[] | null;
 }) {
   if (task.repeat === 'set_days') {
     const days = weekdayOptions
       .filter((option) => task.selectedWeekdays?.includes(option.value))
       .map((option) => option.label)
       .join(', ');
-    return `Set Days${days ? ` • ${days}` : ''}`;
+    return `Set Days${days ? ` - ${days}` : ''}`;
   }
 
-  if (task.repeat === 'none') {
-    return `One time • ${formatDate(task.scheduledFor)}`;
+  if (task.repeat === 'once') {
+    return `One time${task.startDate ? ` - ${formatDate(task.startDate)}` : ''}`;
   }
 
   if (task.startDate) {
-    return `${repeatLabel(task.repeat)} • starts ${formatDate(task.startDate)}`;
+    return `${repeatLabel(task.repeat)} - starts ${formatDate(task.startDate)}`;
   }
 
   return repeatLabel(task.repeat);
 }
 
 export function ChildTasks() {
-  const {
-    currentUser,
-    deleteTask,
-    deleteTaskOccurrence,
-    getLinkedParents,
-    getTaskHistoryForParent,
-    requestAlarmPermission,
-    saveTask,
-    selectedParent,
-    setTaskEnabled,
-  } = useApp();
+  const { getLinkedParents, requestAlarmPermission, selectedParent } = useApp();
   const parents = getLinkedParents();
+  const {
+    activeTasks,
+    deactivateTask,
+    error,
+    loading,
+    refresh,
+    saveTask,
+    saving,
+  } = useCloudTasks(selectedParent?.id);
   const [showForm, setShowForm] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [form, setForm] = useState<TaskFormInput>({
@@ -78,7 +77,6 @@ export function ChildTasks() {
   });
   const [errors, setErrors] = useState<TaskValidationErrors>({});
   const [successMessage, setSuccessMessage] = useState('');
-  const [filter, setFilter] = useState<'all' | TaskStatus>('all');
 
   useEffect(() => {
     if (parents.length === 1 && !form.parentId) {
@@ -86,15 +84,10 @@ export function ChildTasks() {
     }
   }, [form.parentId, parents]);
 
-  const tasks = useMemo(() => {
-    if (!selectedParent) return [];
-    return getTaskHistoryForParent(selectedParent.id)
-      .filter((task) => filter === 'all' || task.status === filter)
-      .sort(
-        (a, b) =>
-          new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime(),
-      );
-  }, [filter, getTaskHistoryForParent, selectedParent]);
+  const tasks = useMemo(
+    () => [...activeTasks].sort((left, right) => left.task_time.localeCompare(right.task_time)),
+    [activeTasks],
+  );
 
   const resetForm = () => {
     setForm({
@@ -116,16 +109,30 @@ export function ChildTasks() {
     };
     const nextErrors = validateTaskInput(normalizedForm);
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0 || !currentUser) return;
+    if (Object.keys(nextErrors).length > 0 || saving) return;
 
     if (normalizedForm.ringAlarm) {
       await requestAlarmPermission();
     }
 
-    saveTask(normalizedForm, editingTaskId ?? undefined);
-    setSuccessMessage(editingTaskId ? 'Task updated.' : 'Task saved.');
-    resetForm();
-    setShowForm(false);
+    try {
+      await saveTask({
+        taskId: editingTaskId ?? undefined,
+        assignedTo: normalizedForm.parentId,
+        title: normalizedForm.title,
+        taskTime: normalizedForm.time,
+        startDate: normalizedForm.startDate || undefined,
+        repeatType: normalizedForm.repeat,
+        repeatDays: normalizedForm.selectedWeekdays,
+        requiresAlarm: normalizedForm.ringAlarm,
+        requiresPhoto: normalizedForm.requiresPhoto,
+      });
+      setSuccessMessage(editingTaskId ? 'Task updated.' : 'Task saved.');
+      resetForm();
+      setShowForm(false);
+    } catch {
+      setSuccessMessage('');
+    }
   };
 
   return (
@@ -146,25 +153,19 @@ export function ChildTasks() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2 pb-1">
-        {(['all', 'pending', 'done', 'missed'] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setFilter(value)}
-            className={`shrink-0 rounded-full px-3 py-2 text-xs font-medium capitalize ${
-              filter === value ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'
-            }`}
-          >
-            {value}
-          </button>
-        ))}
-      </div>
-
       {successMessage ? (
         <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           {successMessage}
         </p>
+      ) : null}
+
+      {error ? (
+        <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <p>{error}</p>
+          <button type="button" onClick={() => void refresh()} className="mt-2 font-semibold">
+            Retry
+          </button>
+        </div>
       ) : null}
 
       {showForm && (
@@ -230,7 +231,7 @@ export function ChildTasks() {
             }
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
           >
-            <option value="none">Does Not Repeat</option>
+            <option value="once">Does Not Repeat</option>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
@@ -252,16 +253,12 @@ export function ChildTasks() {
                         setForm((currentForm) => ({
                           ...currentForm,
                           selectedWeekdays: selected
-                            ? currentForm.selectedWeekdays.filter(
-                                (value) => value !== weekday.value,
-                              )
+                            ? currentForm.selectedWeekdays.filter((value) => value !== weekday.value)
                             : [...currentForm.selectedWeekdays, weekday.value],
                         }))
                       }
                       className={`rounded-full px-3 py-2 text-sm font-medium ${
-                        selected
-                          ? 'bg-teal-600 text-white'
-                          : 'bg-slate-100 text-slate-600'
+                        selected ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600'
                       }`}
                     >
                       {weekday.label}
@@ -296,59 +293,45 @@ export function ChildTasks() {
           <button
             type="submit"
             aria-label="Save task"
-            className="w-full rounded-lg bg-teal-600 py-2 text-sm font-medium text-white"
+            disabled={saving}
+            className="w-full rounded-lg bg-teal-600 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
-            {editingTaskId ? 'Save changes' : 'Save task'}
+            {saving ? 'Saving...' : editingTaskId ? 'Save changes' : 'Save task'}
           </button>
         </form>
       )}
 
-      {tasks.length === 0 ? (
+      {loading ? (
+        <p className="rounded-xl bg-white p-4 text-sm text-slate-500 shadow-sm">Loading tasks...</p>
+      ) : tasks.length === 0 ? (
         <p className="rounded-xl bg-white p-4 text-sm text-slate-500 shadow-sm">
-          No tasks found for this parent in the selected category.
+          No active tasks for this parent yet.
         </p>
       ) : (
         <ul className="space-y-2">
           {tasks.map((task) => (
-            <li
-              key={task.occurrenceId}
-              className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm"
-            >
+            <li key={task.id} className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
               <div className="flex justify-between gap-2">
                 <div>
                   <p className="font-medium">{task.title}</p>
                   <p className="text-xs text-slate-500">
-                    {formatLocalTime(task.time)} • {describeTask(task)}
+                    {formatLocalTime(task.task_time)} - {describeTask({
+                      repeat: task.repeat_type,
+                      startDate: task.start_date,
+                      selectedWeekdays: task.repeat_days,
+                    })}
                   </p>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs capitalize ${
-                    task.status === 'done'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : task.status === 'missed'
-                        ? 'bg-rose-100 text-rose-700'
-                        : 'bg-amber-100 text-amber-700'
-                  }`}
-                >
-                  {task.status}
+                <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">
+                  Active
                 </span>
               </div>
 
               <p className="mt-2 text-xs text-slate-500">
-                {task.ringAlarm ? 'Alarm on' : 'Alarm off'} •{' '}
-                {task.requiresPhoto ? 'Photo required' : 'No photo required'}
+                {task.requires_alarm ? 'Alarm on' : 'Alarm off'} -{' '}
+                {task.requires_photo ? 'Photo required' : 'No photo required'}
               </p>
-              {task.completedAt ? (
-                <p className="mt-1 text-xs text-slate-500">
-                  Completed {formatDate(task.completedAt)}
-                  {task.photoConfirmed ? ' • Photo confirmed' : ''}
-                </p>
-              ) : null}
-              {!task.completedAt ? (
-                <p className="mt-1 text-xs text-slate-500">
-                  Scheduled {formatDate(task.scheduledFor)}
-                </p>
-              ) : null}
+              <p className="mt-1 text-xs text-slate-500">Starts {formatDate(task.start_date)}</p>
 
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <button
@@ -356,14 +339,14 @@ export function ChildTasks() {
                   onClick={() => {
                     setEditingTaskId(task.id);
                     setForm({
-                      parentId: task.assignedParentId,
+                      parentId: task.assigned_to,
                       title: task.title,
-                      time: task.time,
-                      startDate: task.startDate ?? '',
-                      repeat: task.repeat,
-                      selectedWeekdays: task.selectedWeekdays ?? [],
-                      ringAlarm: task.ringAlarm,
-                      requiresPhoto: task.requiresPhoto,
+                      time: task.task_time.slice(0, 5),
+                      startDate: task.start_date ?? '',
+                      repeat: task.repeat_type,
+                      selectedWeekdays: task.repeat_days ?? [],
+                      ringAlarm: task.requires_alarm,
+                      requiresPhoto: task.requires_photo,
                     });
                     setShowForm(true);
                     setSuccessMessage('');
@@ -374,36 +357,12 @@ export function ChildTasks() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTaskEnabled(task.id, !task.isActive)}
-                  className="rounded-full bg-amber-50 px-3 py-2 font-semibold text-amber-700"
+                  onClick={() => void deactivateTask(task.id)}
+                  disabled={saving}
+                  className="rounded-full bg-amber-50 px-3 py-2 font-semibold text-amber-700 disabled:opacity-60"
                 >
-                  {task.isActive ? 'Pause' : 'Resume'}
+                  Deactivate
                 </button>
-                {task.status === 'missed' ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm('Delete this missed task record?')) {
-                        deleteTaskOccurrence(task.occurrenceId);
-                      }
-                    }}
-                    className="rounded-full bg-rose-50 px-3 py-2 font-semibold text-rose-600"
-                  >
-                    Delete missed record
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm('Delete this task?')) {
-                        deleteTask(task.id);
-                      }
-                    }}
-                    className="rounded-full bg-rose-50 px-3 py-2 font-semibold text-rose-600"
-                  >
-                    Delete task
-                  </button>
-                )}
               </div>
             </li>
           ))}

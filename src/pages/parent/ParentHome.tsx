@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BigButton } from '../../components/BigButton';
 import { useApp } from '../../context/AppContext';
 import { getTodayFamilyVaultPhotos } from '../../features/photos/familyVaultStore';
+import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 import { formatTime } from '../../utils/helpers';
 
 type ParentAction = {
@@ -20,13 +21,12 @@ const parentActions: ParentAction[] = [
 ];
 
 export function ParentHome() {
-  const { getTaskSummary, selectedParent } = useApp();
+  const { selectedParent } = useApp();
   const navigate = useNavigate();
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const parent = selectedParent;
-  const summary = parent
-    ? getTaskSummary(parent.id)
-    : { total: 0, done: 0, pending: 0, missed: 0 };
+  const { todayTasks } = useCloudTasks(parent?.id);
+  const pendingTasks = todayTasks.filter((task) => task.status === 'pending').length;
   const todayPhotos = getTodayFamilyVaultPhotos();
   const activePhoto = todayPhotos[currentPhotoIndex] ?? null;
 
@@ -70,7 +70,7 @@ export function ParentHome() {
             <p className="mt-1 text-base text-slate-500">{parent.city}</p>
           </div>
           <div className="rounded-2xl bg-amber-50 px-4 py-3 text-center shadow-sm">
-            <p className="text-3xl font-bold text-amber-600">{summary.pending}</p>
+            <p className="text-3xl font-bold text-amber-600">{pendingTasks}</p>
             <p className="text-sm font-semibold text-amber-800">today's tasks</p>
           </div>
         </div>

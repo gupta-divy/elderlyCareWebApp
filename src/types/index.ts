@@ -20,7 +20,7 @@ export type ParentProfile = {
 };
 
 export type TaskRepeat =
-  | 'none'
+  | 'once'
   | 'daily'
   | 'weekly'
   | 'monthly'

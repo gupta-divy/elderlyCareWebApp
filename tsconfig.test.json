@@ -10,7 +10,11 @@
   },
   "include": [
     "src/domain/**/*.ts",
-    "src/features/tasks/**/*.ts",
+    "src/features/family/**/*.ts",
+    "src/features/tasks/taskAlarmService.ts",
+    "src/features/tasks/taskData.ts",
+    "src/features/tasks/taskRecurrence.ts",
+    "src/features/tasks/taskValidation.ts",
     "src/types/**/*.ts",
     "src/utils/helpers.ts",
     "src/data/seed.ts"

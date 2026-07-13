@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useFamily } from '../contexts/FamilyContext';
 
 type NavItem = { to: string; label: string; icon: string };
 
@@ -18,11 +20,14 @@ const childNav: NavItem[] = [
 ];
 
 export function Layout() {
-  const { currentUser, logout } = useApp();
+  const { currentUser } = useApp();
+  const { signOut } = useAuth();
+  const { role } = useFamily();
   const navigate = useNavigate();
-  const isParent = currentUser?.role === 'parent';
+  const isParent = (role ?? currentUser?.role) === 'parent';
   const nav = isParent ? parentNav : childNav;
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const accountPath = isParent ? '/parent/account' : '/child/account';
 
   return (
     <div className="app-shell mx-auto flex min-h-dvh flex-col bg-white/50 backdrop-blur-[2px]">
@@ -50,7 +55,32 @@ export function Layout() {
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
               Account settings
             </p>
-            <p className="mt-2 text-lg font-semibold">{currentUser?.name}</p>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="min-w-0 break-words text-lg font-semibold">{currentUser?.name}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAccountMenu(false);
+                  navigate(accountPath);
+                }}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700"
+                aria-label="Open account information"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 .9-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 .9 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+                </svg>
+              </button>
+            </div>
             <p className="break-words text-sm text-slate-500">{currentUser?.email}</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button
@@ -64,8 +94,7 @@ export function Layout() {
                 type="button"
                 onClick={() => {
                   setShowAccountMenu(false);
-                  logout();
-                  navigate('/');
+                  void signOut().finally(() => navigate('/login', { replace: true }));
                 }}
                 className="rounded-2xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white shadow-sm"
               >

@@ -32,7 +32,7 @@ export function validateTaskInput(
     errors.selectedWeekdays = 'Choose at least one day.';
   }
 
-  if (input.repeat === 'none' && input.startDate) {
+  if (input.repeat === 'once' && input.startDate) {
     const nextOccurrence = getNextOccurrenceForInput(
       { ...input, title },
       now,
@@ -51,7 +51,7 @@ export function validateTaskInput(
 
 export function repeatLabel(repeat: TaskRepeat): string {
   switch (repeat) {
-    case 'none':
+    case 'once':
       return 'Does not repeat';
     case 'daily':
       return 'Daily';
