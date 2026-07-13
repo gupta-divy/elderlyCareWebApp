@@ -9,7 +9,7 @@ export type TaskRow = {
   assigned_to: string;
   created_by: string;
   title: string;
-  task_time: string;
+  task_time: string | null;
   start_date: string;
   repeat_type: TaskRepeat;
   repeat_days: TaskWeekday[] | null;
@@ -38,7 +38,7 @@ export type TaskDraft = {
   assignedTo: string;
   createdBy: string;
   title: string;
-  taskTime: string;
+  taskTime: string | null;
   startDate?: string;
   repeatType: TaskRepeat;
   repeatDays?: TaskWeekday[];
@@ -65,7 +65,7 @@ export function mapTaskRow(row: TaskRow): TaskTemplate {
     assignedParentId: row.assigned_to,
     createdByChildId: row.created_by,
     title: row.title,
-    time: row.task_time.slice(0, 5),
+    time: row.task_time?.slice(0, 5) ?? '',
     startDate: row.start_date,
     repeat: row.repeat_type,
     selectedWeekdays: row.repeat_type === 'set_days' ? row.repeat_days ?? [] : undefined,
@@ -83,11 +83,11 @@ export function toTaskInsert(draft: TaskDraft) {
     assigned_to: draft.assignedTo,
     created_by: draft.createdBy,
     title: draft.title.trim(),
-    task_time: draft.taskTime,
+    task_time: draft.taskTime || null,
     start_date: normalizeLocalDateKey(draft.startDate),
     repeat_type: draft.repeatType,
     repeat_days: draft.repeatType === 'set_days' ? [...(draft.repeatDays ?? [])].sort() : null,
-    requires_alarm: draft.requiresAlarm,
+    requires_alarm: Boolean(draft.taskTime && draft.requiresAlarm),
     requires_photo: draft.requiresPhoto,
     is_active: true,
   };
@@ -97,11 +97,11 @@ export function toTaskUpdate(draft: Omit<TaskDraft, 'familyId' | 'createdBy'>) {
   return {
     assigned_to: draft.assignedTo,
     title: draft.title.trim(),
-    task_time: draft.taskTime,
+    task_time: draft.taskTime || null,
     start_date: normalizeLocalDateKey(draft.startDate),
     repeat_type: draft.repeatType,
     repeat_days: draft.repeatType === 'set_days' ? [...(draft.repeatDays ?? [])].sort() : null,
-    requires_alarm: draft.requiresAlarm,
+    requires_alarm: Boolean(draft.taskTime && draft.requiresAlarm),
     requires_photo: draft.requiresPhoto,
     is_active: true,
   };

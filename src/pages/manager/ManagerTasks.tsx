@@ -25,7 +25,7 @@ const weekdayOptions: Array<{ label: string; value: TaskWeekday }> = [
 const emptyForm: TaskFormInput = {
   parentId: '',
   title: '',
-  time: '08:00',
+  time: '',
   startDate: '',
   repeat: 'once',
   selectedWeekdays: [],
@@ -85,7 +85,7 @@ export function ChildTasks() {
   }, [form.parentId, parents]);
 
   const tasks = useMemo(
-    () => [...activeTasks].sort((left, right) => left.task_time.localeCompare(right.task_time)),
+    () => [...activeTasks].sort((left, right) => (left.task_time ?? '99:99').localeCompare(right.task_time ?? '99:99')),
     [activeTasks],
   );
 
@@ -111,7 +111,7 @@ export function ChildTasks() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0 || saving) return;
 
-    if (normalizedForm.ringAlarm) {
+    if (normalizedForm.time && normalizedForm.ringAlarm) {
       await requestAlarmPermission();
     }
 
@@ -120,11 +120,11 @@ export function ChildTasks() {
         taskId: editingTaskId ?? undefined,
         assignedTo: normalizedForm.parentId,
         title: normalizedForm.title,
-        taskTime: normalizedForm.time,
+        taskTime: normalizedForm.time || null,
         startDate: normalizedForm.startDate || undefined,
         repeatType: normalizedForm.repeat,
         repeatDays: normalizedForm.selectedWeekdays,
-        requiresAlarm: normalizedForm.ringAlarm,
+        requiresAlarm: Boolean(normalizedForm.time && normalizedForm.ringAlarm),
         requiresPhoto: normalizedForm.requiresPhoto,
       });
       setSuccessMessage(editingTaskId ? 'Task updated.' : 'Task saved.');
@@ -201,13 +201,35 @@ export function ChildTasks() {
           </div>
 
           <div>
-            <input
-              type="time"
-              value={form.time}
-              onChange={(e) => setForm({ ...form, time: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            />
-            {errors.time ? <p className="mt-1 text-xs text-rose-600">{errors.time}</p> : null}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={!form.time}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      time: e.target.checked ? '' : '08:00',
+                      ringAlarm: e.target.checked ? false : form.ringAlarm,
+                    })
+                  }
+                />
+                Anytime in the day
+              </label>
+              <input
+                type="time"
+                value={form.time}
+                disabled={!form.time}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    time: e.target.value,
+                    ringAlarm: e.target.value ? form.ringAlarm : false,
+                  })
+                }
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-400"
+              />
+            </div>
           </div>
 
           <div>
@@ -276,6 +298,7 @@ export function ChildTasks() {
             <input
               type="checkbox"
               checked={form.ringAlarm}
+              disabled={!form.time}
               onChange={(e) => setForm({ ...form, ringAlarm: e.target.checked })}
             />
             Ring Alarm
@@ -315,7 +338,7 @@ export function ChildTasks() {
                 <div>
                   <p className="font-medium">{task.title}</p>
                   <p className="text-xs text-slate-500">
-                    {formatLocalTime(task.task_time)} - {describeTask({
+                    {formatLocalTime(task.task_time ?? '')} - {describeTask({
                       repeat: task.repeat_type,
                       startDate: task.start_date,
                       selectedWeekdays: task.repeat_days,
@@ -328,7 +351,7 @@ export function ChildTasks() {
               </div>
 
               <p className="mt-2 text-xs text-slate-500">
-                {task.requires_alarm ? 'Alarm on' : 'Alarm off'} -{' '}
+                {task.task_time && task.requires_alarm ? 'Alarm on' : 'Alarm off'} -{' '}
                 {task.requires_photo ? 'Photo required' : 'No photo required'}
               </p>
               <p className="mt-1 text-xs text-slate-500">Starts {formatDate(task.start_date)}</p>
@@ -341,11 +364,11 @@ export function ChildTasks() {
                     setForm({
                       parentId: task.assigned_to,
                       title: task.title,
-                      time: task.task_time.slice(0, 5),
+                      time: task.task_time?.slice(0, 5) ?? '',
                       startDate: task.start_date ?? '',
                       repeat: task.repeat_type,
                       selectedWeekdays: task.repeat_days ?? [],
-                      ringAlarm: task.requires_alarm,
+                      ringAlarm: Boolean(task.task_time && task.requires_alarm),
                       requiresPhoto: task.requires_photo,
                     });
                     setShowForm(true);

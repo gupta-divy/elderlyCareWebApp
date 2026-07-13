@@ -49,7 +49,7 @@ function buildInput(overrides = {}) {
   };
 }
 
-test('validates missing parent, empty title, missing time, and set-days selection', () => {
+test('validates missing parent, empty title, and set-days selection while allowing no time', () => {
   const errors = validateTaskInput(
     buildInput({
       parentId: '',
@@ -63,8 +63,17 @@ test('validates missing parent, empty title, missing time, and set-days selectio
 
   assert.equal(errors.parentId, 'Choose a parent.');
   assert.equal(errors.title, 'Enter a task title.');
-  assert.equal(errors.time, 'Choose a time.');
+  assert.equal(errors.time, undefined);
   assert.equal(errors.selectedWeekdays, 'Choose at least one day.');
+});
+
+test('schedules untimed tasks for the end of the selected day', () => {
+  const next = getNextOccurrenceForInput(
+    buildInput({ time: '', startDate: '2026-07-10' }),
+    new Date('2026-07-10T09:30:00'),
+  );
+
+  assert.equal(next.toISOString(), '2026-07-11T03:59:59.999Z');
 });
 
 test('calculates daily recurrence', () => {
@@ -156,6 +165,22 @@ test('schedules an alarm record when a ringing task is created', () => {
 
   assert.equal(nextState.taskAlarmRecords.length, 1);
   assert.equal(nextState.taskAlarmRecords[0].status, 'scheduled');
+});
+
+test('does not schedule an alarm record for an untimed task', () => {
+  const actor = getChildActor();
+  const nextState = saveTaskDefinition(
+    cloneSeed(),
+    buildInput({ repeat: 'daily', ringAlarm: true, time: '' }),
+    actor,
+    undefined,
+    new Date('2026-07-10T09:00:00'),
+  );
+  const task = nextState.taskTemplates.at(-1);
+
+  assert.equal(task?.time, '');
+  assert.equal(task?.ringAlarm, false);
+  assert.equal(nextState.taskAlarmRecords.length, 0);
 });
 
 test('cancels the previous alarm record after editing a task', () => {
@@ -251,7 +276,7 @@ test('parent task list keeps today done occurrence visible instead of switching 
   );
 });
 
-test('completes a photo-required task only after confirmation metadata is present', () => {
+test('completes a photo-required task without storing proof metadata', () => {
   const state = normalizeTaskState(cloneSeed(), new Date('2026-07-10T07:00:00'));
   const pendingOccurrence = state.taskOccurrences.find(
     (occurrence) => occurrence.taskId === 'task-1' && occurrence.status === 'pending',
@@ -262,14 +287,14 @@ test('completes a photo-required task only after confirmation metadata is presen
     state,
     pendingOccurrence.id,
     'parent-1',
-    { proofUrl: 'data:image/jpeg;base64,abc', photoConfirmed: true },
+    undefined,
     new Date('2026-07-10T08:05:00'),
   );
   const doneOccurrence = completedState.taskOccurrences.find((entry) => entry.id === pendingOccurrence.id);
 
   assert.equal(doneOccurrence?.status, 'done');
-  assert.equal(doneOccurrence?.photoConfirmed, true);
-  assert.equal(doneOccurrence?.proofUrl, 'data:image/jpeg;base64,abc');
+  assert.equal(doneOccurrence?.photoConfirmed, undefined);
+  assert.equal(doneOccurrence?.proofUrl, undefined);
 });
 
 test('ignores duplicate done taps for the same occurrence', () => {
@@ -394,6 +419,10 @@ test('maps task rows to app task templates and insert payloads', () => {
   assert.equal(mapped.time, '08:30');
   assert.deepEqual(mapped.selectedWeekdays, [1, 5]);
 
+  const untimed = mapTaskRow({ ...row, task_time: null, requires_alarm: true });
+  assert.equal(untimed.time, '');
+  assert.equal(untimed.ringAlarm, true);
+
   const insert = toTaskInsert({
     familyId: 'family-id',
     assignedTo: 'parent-id',
@@ -407,6 +436,19 @@ test('maps task rows to app task templates and insert payloads', () => {
   });
   assert.equal(insert.title, 'Medicine');
   assert.equal(insert.repeat_days, null);
+  const untimedInsert = toTaskInsert({
+    familyId: 'family-id',
+    assignedTo: 'parent-id',
+    createdBy: 'child-id',
+    title: 'Anytime walk',
+    taskTime: null,
+    startDate: '2026-07-10',
+    repeatType: 'once',
+    requiresAlarm: true,
+    requiresPhoto: false,
+  });
+  assert.equal(untimedInsert.task_time, null);
+  assert.equal(untimedInsert.requires_alarm, false);
 });
 
 test('filters parent tasks and derives completed occurrence views', () => {
@@ -483,10 +525,12 @@ test('permission helper prevents parent cross-family completion', () => {
 
 test('tasks migration enables RLS and uniqueness for task completions', () => {
   const migration = fs.readFileSync('supabase/migrations/20260713000400_cloud_backed_tasks.sql', 'utf8');
+  const anytimeMigration = fs.readFileSync('supabase/migrations/20260713000500_allow_anytime_tasks.sql', 'utf8');
 
   assert.match(migration, /alter table public\.tasks enable row level security/i);
   assert.match(migration, /alter table public\.task_completions enable row level security/i);
   assert.match(migration, /constraint task_completions_task_occurrence_unique unique \(task_id, scheduled_for\)/i);
   assert.match(migration, /tasks_select_family_child_or_assigned_parent/i);
   assert.match(migration, /task_completions_insert_assigned_parent/i);
+  assert.match(anytimeMigration, /alter column task_time drop not null/i);
 });

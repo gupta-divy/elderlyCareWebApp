@@ -53,18 +53,9 @@ function TaskCard({
         </span>
       </div>
 
-      {task.proofUrl ? (
-        <img
-          src={task.proofUrl}
-          alt="Task proof"
-          className="mt-3 h-24 w-24 rounded-lg object-cover"
-        />
-      ) : null}
-
       {task.completedAt ? (
         <p className="mt-3 text-sm text-slate-600">
           Done on {formatDate(task.completedAt)}
-          {task.photoConfirmed ? ' - Photo confirmed' : ''}
         </p>
       ) : null}
 
@@ -107,8 +98,6 @@ function TaskGroup({
 
 export function ParentTasks() {
   const {
-    cancelTaskPhotoFlow,
-    pendingTaskPhotoFlow,
     selectedParent,
     startTaskPhotoFlow,
   } = useApp();
@@ -135,15 +124,11 @@ export function ParentTasks() {
 
   if (!parent) return null;
 
-  const flowTask = pendingTaskPhotoFlow
-    ? todayTasks.find((task) => task.occurrenceId === pendingTaskPhotoFlow.occurrenceId)
-    : undefined;
-
-  const handleComplete = async (task: CloudTaskView, photoPath?: string | null) => {
+  const handleComplete = async (task: CloudTaskView) => {
     if (busyOccurrenceId === task.occurrenceId || saving) return;
     setBusyOccurrenceId(task.occurrenceId);
     try {
-      await completeTask(task, photoPath);
+      await completeTask(task);
     } finally {
       setBusyOccurrenceId(null);
     }
@@ -162,33 +147,6 @@ export function ParentTasks() {
         </div>
       ) : null}
 
-      {flowTask && pendingTaskPhotoFlow?.shareConfirmed ? (
-        <div className="rounded-2xl border-2 border-teal-400 bg-teal-50 p-4">
-          <p className="text-lg font-medium">Was the photo sent for {flowTask.title}?</p>
-          <div className="mt-3 flex gap-3">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => {
-                void handleComplete(flowTask, pendingTaskPhotoFlow.proofUrl ?? null).then(() => {
-                  cancelTaskPhotoFlow();
-                });
-              }}
-              className="rounded-xl bg-teal-600 px-4 py-2 text-white disabled:opacity-60"
-            >
-              {saving ? 'Saving...' : 'Yes, mark done'}
-            </button>
-            <button
-              type="button"
-              onClick={() => cancelTaskPhotoFlow()}
-              className="rounded-xl bg-white px-4 py-2 text-slate-700"
-            >
-              Not yet
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {loading ? (
         <p className="text-center text-slate-500">Loading tasks...</p>
       ) : todayTasks.length === 0 ? (
@@ -200,7 +158,7 @@ export function ParentTasks() {
             tasks={grouped.pending}
             onComplete={(task) => {
               if (task.requiresPhoto) {
-                startTaskPhotoFlow(task.occurrenceId, task.id);
+                startTaskPhotoFlow(task.occurrenceId, task.id, task.scheduledFor, task.familyId);
                 navigate('/parent/send-photo', { state: { taskPhotoFlow: true } });
                 return;
               }
@@ -211,19 +169,6 @@ export function ParentTasks() {
           <TaskGroup title="Missed" tasks={grouped.missed} onComplete={() => undefined} />
         </>
       )}
-
-      {pendingTaskPhotoFlow && !pendingTaskPhotoFlow.shareConfirmed ? (
-        <button
-          type="button"
-          onClick={() => {
-            cancelTaskPhotoFlow();
-            navigate('/parent/tasks');
-          }}
-          className="hidden"
-        >
-          Cancel photo workflow
-        </button>
-      ) : null}
     </div>
   );
 }

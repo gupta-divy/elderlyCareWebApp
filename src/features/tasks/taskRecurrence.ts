@@ -26,6 +26,10 @@ function parseTimeParts(time: string): [number, number] {
 
 export function combineLocalDateAndTime(dateKey: string, time: string): Date {
   const date = new Date(`${dateKey}T00:00:00`);
+  if (!time) {
+    date.setHours(23, 59, 59, 999);
+    return date;
+  }
   const [hours, minutes] = parseTimeParts(time);
   date.setHours(hours, minutes, 0, 0);
   return date;

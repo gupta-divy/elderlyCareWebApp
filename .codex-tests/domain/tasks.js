@@ -93,6 +93,7 @@ function syncAlarmRecordsForTask(records, task, pendingOccurrence, now) {
             return record;
         if (activeAlarmId &&
             record.id === activeAlarmId &&
+            task.time &&
             task.ringAlarm &&
             pendingOccurrence &&
             new Date(pendingOccurrence.scheduledFor).getTime() >= now.getTime()) {
@@ -112,6 +113,7 @@ function syncAlarmRecordsForTask(records, task, pendingOccurrence, now) {
         };
     });
     if (activeAlarmId &&
+        task.time &&
         task.ringAlarm &&
         pendingOccurrence &&
         new Date(pendingOccurrence.scheduledFor).getTime() >= now.getTime() &&
@@ -204,7 +206,7 @@ function saveTaskDefinition(state, input, actor, taskId, now = new Date()) {
         startDate: input.startDate || undefined,
         repeat: input.repeat,
         selectedWeekdays: input.repeat === 'set_days' ? [...input.selectedWeekdays].sort() : undefined,
-        ringAlarm: input.ringAlarm,
+        ringAlarm: Boolean(input.time && input.ringAlarm),
         requiresPhoto: input.requiresPhoto,
         isActive: true,
         nextOccurrenceAt: occurrenceAt,

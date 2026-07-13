@@ -89,7 +89,7 @@ export function useCloudTasks(parentId?: string | null) {
       taskId?: string;
       assignedTo: string;
       title: string;
-      taskTime: string;
+      taskTime: string | null;
       startDate?: string;
       repeatType: TaskDraft['repeatType'];
       repeatDays?: TaskWeekday[];
@@ -162,6 +162,34 @@ export function useCloudTasks(parentId?: string | null) {
     [familyId, isParent, refresh, saving, user],
   );
 
+  const completeByOccurrence = useCallback(
+    async (input: {
+      taskId: string;
+      familyId: string;
+      scheduledFor: string;
+    }) => {
+      if (!user || !isParent || saving) return;
+      setSaving(true);
+      setError(null);
+      try {
+        await completeTaskOccurrence({
+          taskId: input.taskId,
+          familyId: input.familyId,
+          completedBy: user.id,
+          scheduledFor: input.scheduledFor,
+          photoPath: null,
+        });
+        await refresh();
+      } catch (saveError) {
+        setError(toTaskError(saveError));
+        throw saveError;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [isParent, refresh, saving, user],
+  );
+
   return {
     tasks,
     activeTasks,
@@ -173,5 +201,6 @@ export function useCloudTasks(parentId?: string | null) {
     saveTask,
     deactivateTask: deactivate,
     completeTask: complete,
+    completeTaskByOccurrence: completeByOccurrence,
   };
 }

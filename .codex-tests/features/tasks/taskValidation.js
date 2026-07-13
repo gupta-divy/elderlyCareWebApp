@@ -16,9 +16,6 @@ function validateTaskInput(input, now = new Date()) {
     if (!title) {
         errors.title = 'Enter a task title.';
     }
-    if (!input.time) {
-        errors.time = 'Choose a time.';
-    }
     if (input.repeat === 'set_days' && input.selectedWeekdays.length === 0) {
         errors.selectedWeekdays = 'Choose at least one day.';
     }

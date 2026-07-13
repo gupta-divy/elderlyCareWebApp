@@ -6,6 +6,7 @@ import {
   canSharePhoto,
   sharePhotoToWhatsAppPreferred,
 } from '../../features/photos/photoShareService';
+import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 
 type CameraState = 'checking' | 'granted' | 'denied' | 'unsupported' | 'error';
 
@@ -37,11 +38,12 @@ export function SendPhotoScreen() {
   const location = useLocation();
   const {
     cancelTaskPhotoFlow,
-    finishTaskPhotoShare,
+    completeTask: completeLocalTask,
     pendingTaskPhotoFlow,
     selectedParent,
     updateParent,
   } = useApp();
+  const { completeTaskByOccurrence } = useCloudTasks(selectedParent?.id);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -49,8 +51,8 @@ export function SendPhotoScreen() {
   const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(null);
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const launchedFromTask = Boolean(location.state && 'taskPhotoFlow' in (location.state as object))
-    || Boolean(pendingTaskPhotoFlow);
+  const locationState = location.state as { taskPhotoFlow?: boolean } | null;
+  const launchedFromTask = Boolean(locationState?.taskPhotoFlow && pendingTaskPhotoFlow);
 
   useEffect(() => {
     let isMounted = true;
@@ -198,15 +200,25 @@ export function SendPhotoScreen() {
     setIsSending(false);
 
     if (result.status === 'success') {
+      if (launchedFromTask && pendingTaskPhotoFlow) {
+        if (pendingTaskPhotoFlow.familyId && pendingTaskPhotoFlow.scheduledFor) {
+          await completeTaskByOccurrence({
+            taskId: pendingTaskPhotoFlow.taskId,
+            familyId: pendingTaskPhotoFlow.familyId,
+            scheduledFor: pendingTaskPhotoFlow.scheduledFor,
+          });
+        } else {
+          completeLocalTask(pendingTaskPhotoFlow.occurrenceId);
+        }
+        cancelTaskPhotoFlow();
+        navigate('/parent/tasks', { replace: true });
+        return;
+      }
+
       updateParent(selectedParent.id, {
         lastPhotoUrl: capturedPhoto.dataUrl,
         lastPhotoTimestamp: new Date().toISOString(),
       });
-      if (launchedFromTask) {
-        finishTaskPhotoShare(capturedPhoto.dataUrl);
-        navigate('/parent/tasks', { replace: true });
-        return;
-      }
       navigate('/parent', { replace: true });
       return;
     }

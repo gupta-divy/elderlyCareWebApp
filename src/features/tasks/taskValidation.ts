@@ -2,7 +2,7 @@ import type { TaskRepeat } from '../../types';
 import { getNextOccurrenceForInput, type TaskFormInput } from './taskRecurrence';
 
 export type TaskValidationErrors = Partial<
-  Record<'parentId' | 'title' | 'time' | 'selectedWeekdays' | 'startDate', string>
+  Record<'parentId' | 'title' | 'selectedWeekdays' | 'startDate', string>
 >;
 
 export function trimTaskTitle(title: string): string {
@@ -22,10 +22,6 @@ export function validateTaskInput(
 
   if (!title) {
     errors.title = 'Enter a task title.';
-  }
-
-  if (!input.time) {
-    errors.time = 'Choose a time.';
   }
 
   if (input.repeat === 'set_days' && input.selectedWeekdays.length === 0) {

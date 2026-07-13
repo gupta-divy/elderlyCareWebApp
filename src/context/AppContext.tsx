@@ -40,8 +40,8 @@ import { generateId } from '../utils/helpers';
 type PendingTaskPhotoFlow = {
   occurrenceId: string;
   taskId: string;
-  proofUrl?: string;
-  shareConfirmed: boolean;
+  scheduledFor?: string;
+  familyId?: string;
 };
 
 export type AuthenticatedFamilyProfile = {
@@ -87,10 +87,13 @@ type AppContextValue = {
   setTaskEnabled: (taskId: string, enabled: boolean) => void;
   requestAlarmPermission: () => Promise<NotificationPermission | 'unsupported'>;
   pendingTaskPhotoFlow: PendingTaskPhotoFlow | null;
-  startTaskPhotoFlow: (occurrenceId: string, taskId: string) => void;
+  startTaskPhotoFlow: (
+    occurrenceId: string,
+    taskId: string,
+    scheduledFor?: string,
+    familyId?: string,
+  ) => void;
   cancelTaskPhotoFlow: () => void;
-  finishTaskPhotoShare: (proofUrl?: string) => void;
-  confirmTaskPhotoFlow: (confirmed: boolean) => void;
   addDocument: (doc: Omit<Document, 'id' | 'uploadDate'>) => void;
   deleteDocument: (docId: string) => void;
   updateParent: (parentId: string, patch: Partial<ParentProfile>) => void;
@@ -381,43 +384,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((currentState) => setTaskActive(currentState, taskId, enabled));
   }, []);
 
-  const startTaskPhotoFlow = useCallback((occurrenceId: string, taskId: string) => {
+  const startTaskPhotoFlow = useCallback((
+    occurrenceId: string,
+    taskId: string,
+    scheduledFor?: string,
+    familyId?: string,
+  ) => {
     setPendingTaskPhotoFlow({
       occurrenceId,
       taskId,
-      shareConfirmed: false,
+      scheduledFor,
+      familyId,
     });
   }, []);
 
   const cancelTaskPhotoFlow = useCallback(() => {
     setPendingTaskPhotoFlow(null);
   }, []);
-
-  const finishTaskPhotoShare = useCallback((proofUrl?: string) => {
-    setPendingTaskPhotoFlow((currentFlow) =>
-      currentFlow
-        ? {
-            ...currentFlow,
-            proofUrl,
-            shareConfirmed: true,
-          }
-        : currentFlow,
-    );
-  }, []);
-
-  const confirmTaskPhotoFlow = useCallback(
-    (confirmed: boolean) => {
-      if (!pendingTaskPhotoFlow) return;
-      if (confirmed) {
-        completeTask(pendingTaskPhotoFlow.occurrenceId, {
-          proofUrl: pendingTaskPhotoFlow.proofUrl,
-          photoConfirmed: true,
-        });
-      }
-      setPendingTaskPhotoFlow(null);
-    },
-    [completeTask, pendingTaskPhotoFlow],
-  );
 
   const addDocument = useCallback(
     (doc: Omit<Document, 'id' | 'uploadDate'>) => {
@@ -744,8 +727,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     pendingTaskPhotoFlow,
     startTaskPhotoFlow,
     cancelTaskPhotoFlow,
-    finishTaskPhotoShare,
-    confirmTaskPhotoFlow,
     addDocument,
     deleteDocument,
     updateParent,

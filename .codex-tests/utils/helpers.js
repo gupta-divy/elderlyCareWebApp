@@ -25,6 +25,8 @@ function formatDate(iso) {
     });
 }
 function formatLocalTime(time) {
+    if (!time)
+        return 'Anytime today';
     const [hours, minutes] = time.split(':').map(Number);
     const date = new Date();
     date.setHours(hours, minutes, 0, 0);

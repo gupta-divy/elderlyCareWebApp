@@ -143,6 +143,7 @@ function syncAlarmRecordsForTask(
     if (
       activeAlarmId &&
       record.id === activeAlarmId &&
+      task.time &&
       task.ringAlarm &&
       pendingOccurrence &&
       new Date(pendingOccurrence.scheduledFor).getTime() >= now.getTime()
@@ -166,6 +167,7 @@ function syncAlarmRecordsForTask(
 
   if (
     activeAlarmId &&
+    task.time &&
     task.ringAlarm &&
     pendingOccurrence &&
     new Date(pendingOccurrence.scheduledFor).getTime() >= now.getTime() &&
@@ -290,7 +292,7 @@ export function saveTaskDefinition(
     repeat: input.repeat,
     selectedWeekdays:
       input.repeat === 'set_days' ? [...input.selectedWeekdays].sort() : undefined,
-    ringAlarm: input.ringAlarm,
+    ringAlarm: Boolean(input.time && input.ringAlarm),
     requiresPhoto: input.requiresPhoto,
     isActive: true,
     nextOccurrenceAt: occurrenceAt,

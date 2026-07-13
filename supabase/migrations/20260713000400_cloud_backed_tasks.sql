@@ -4,7 +4,7 @@ create table if not exists public.tasks (
   assigned_to uuid not null references public.profiles(id) on delete cascade,
   created_by uuid not null references public.profiles(id) on delete cascade,
   title text not null,
-  task_time time not null,
+  task_time time,
   start_date date not null default current_date,
   repeat_type text not null,
   repeat_days smallint[],

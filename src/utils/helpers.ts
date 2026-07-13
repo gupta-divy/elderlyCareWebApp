@@ -17,6 +17,7 @@ export function formatDate(iso: string): string {
 }
 
 export function formatLocalTime(time: string): string {
+  if (!time) return 'Anytime today';
   const [hours, minutes] = time.split(':').map(Number);
   const date = new Date();
   date.setHours(hours, minutes, 0, 0);
