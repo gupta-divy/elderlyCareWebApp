@@ -377,17 +377,19 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (authLoading) return;
-    if (isDemoMode) {
-      void loadDemoFamily();
-      return;
-    }
-    if (!user) {
+    if (isDemoMode) return;
+    if (!userId) {
       clearFamily();
       return;
     }
 
     void refreshFamily();
-  }, [authLoading, clearFamily, isDemoMode, loadDemoFamily, userId]);
+  }, [authLoading, clearFamily, isDemoMode, userId]);
+
+  useEffect(() => {
+    if (authLoading || !isDemoMode) return;
+    void loadDemoFamily();
+  }, [authLoading, isDemoMode, loadDemoFamily]);
 
   const flags = getFamilyRoleFlags(currentMembership);
   const status = getFamilyLoadStatus({
