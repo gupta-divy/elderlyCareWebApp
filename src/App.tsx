@@ -8,6 +8,7 @@ import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { AccountTest } from './pages/AccountTest';
 import { AccountSettings } from './pages/AccountSettings';
+import { SharedNotesScreen } from './pages/SharedNotesScreen';
 import { ParentHome } from './pages/parent/ParentHome';
 import { ParentTasks } from './pages/parent/ParentTasks';
 import { ParentEmergency } from './pages/parent/ParentEmergency';
@@ -174,6 +175,7 @@ export default function App() {
         <Route index element={<ParentHome />} />
         <Route path="account" element={<AccountSettings />} />
         <Route path="tasks" element={<ParentTasks />} />
+        <Route path="notes" element={<SharedNotesScreen />} />
         <Route path="emergency" element={<ParentEmergency />} />
         <Route path="remote-help" element={<ParentRemoteHelpScreen />} />
         <Route path="create-contact" element={<CreateContactScreen />} />
@@ -194,6 +196,7 @@ export default function App() {
         <Route index element={<ChildDashboard />} />
         <Route path="account" element={<AccountSettings />} />
         <Route path="tasks" element={<ChildTasks />} />
+        <Route path="notes" element={<SharedNotesScreen />} />
         <Route path="documents" element={<ChildDocuments />} />
         <Route
           path="documents/:categoryId"
