@@ -11,6 +11,8 @@
   "include": [
     "src/domain/**/*.ts",
     "src/features/family/**/*.ts",
+    "src/features/documents/documentData.ts",
+    "src/features/documents/documentImage.ts",
     "src/features/tasks/taskAlarmService.ts",
     "src/features/tasks/taskData.ts",
     "src/features/tasks/taskRecurrence.ts",

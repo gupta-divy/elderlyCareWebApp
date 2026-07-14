@@ -1,5 +1,7 @@
 import type {
   TaskOccurrence,
+  TaskItemType,
+  MissNotificationThreshold,
   TaskRepeat,
   TaskTemplate,
   TaskWeekday,
@@ -9,6 +11,7 @@ import { startOfDay, toDateKey } from '../../utils/helpers';
 export const TASK_GRACE_PERIOD_MINUTES = 120;
 
 export type TaskFormInput = {
+  itemType: TaskItemType;
   parentId: string;
   title: string;
   time: string;
@@ -17,7 +20,15 @@ export type TaskFormInput = {
   selectedWeekdays: TaskWeekday[];
   ringAlarm: boolean;
   requiresPhoto: boolean;
+  missNotificationThreshold: MissNotificationThreshold;
+  eventTimezone?: string;
 };
+
+export const DEFAULT_MISS_NOTIFICATION_THRESHOLD: MissNotificationThreshold = 3;
+
+export function getLocalTimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+}
 
 function parseTimeParts(time: string): [number, number] {
   const [hours, minutes] = time.split(':').map(Number);
@@ -91,6 +102,10 @@ function nextSelectedWeekday(
 }
 
 export function getNextOccurrenceForInput(input: TaskFormInput, now = new Date()): Date {
+  if (input.itemType === 'calendar_event') {
+    return combineLocalDateAndTime(input.startDate ?? toDateKey(now), input.time);
+  }
+
   const anchor = pickAnchorDate(input, now);
   const anchorDateKey = toDateKey(anchor);
   const anchorDateTime = combineLocalDateAndTime(anchorDateKey, input.time);
@@ -163,9 +178,11 @@ export function getNextOccurrenceAfterTask(
   after: Date,
 ): Date | undefined {
   if (!task.isActive) return undefined;
+  if (task.itemType === 'calendar_event') return undefined;
 
   const startDate = task.startDate ? new Date(`${task.startDate}T00:00:00`) : after;
   const input: TaskFormInput = {
+    itemType: task.itemType,
     parentId: task.assignedParentId,
     title: task.title,
     time: task.time,
@@ -174,6 +191,8 @@ export function getNextOccurrenceAfterTask(
     selectedWeekdays: task.selectedWeekdays ?? [],
     ringAlarm: task.ringAlarm,
     requiresPhoto: task.requiresPhoto,
+    missNotificationThreshold: task.missNotificationThreshold,
+    eventTimezone: task.eventTimezone,
   };
 
   if (task.repeat === 'once') {
@@ -181,7 +200,16 @@ export function getNextOccurrenceAfterTask(
     return onlyOccurrence.getTime() > after.getTime() ? onlyOccurrence : undefined;
   }
 
-  return getNextOccurrenceForInput(input, new Date(after.getTime() + 1000));
+  return getNextOccurrenceForInput(
+    {
+      ...input,
+      startDate:
+        task.startDate && new Date(`${task.startDate}T00:00:00`).getTime() > after.getTime()
+          ? toDateKey(after)
+          : task.startDate,
+    },
+    new Date(after.getTime() + 1000),
+  );
 }
 
 export function buildOccurrenceId(taskId: string, scheduledFor: string): string {
@@ -199,9 +227,13 @@ export function isOccurrenceOverdue(
 }
 
 export function doesTaskOccurOnDate(
-  task: Pick<TaskTemplate, 'startDate' | 'repeat' | 'selectedWeekdays'>,
+  task: Pick<TaskTemplate, 'startDate' | 'repeat' | 'selectedWeekdays'> & {
+    itemType?: TaskItemType;
+  },
   date: Date,
 ): boolean {
+  if (task.itemType === 'calendar_event') return false;
+
   const dateKey = toDateKey(date);
   const startDateKey = task.startDate ?? dateKey;
   const start = startOfDay(new Date(`${startDateKey}T00:00:00`));

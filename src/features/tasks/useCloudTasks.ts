@@ -5,9 +5,13 @@ import { isSupabaseConfigured } from '../../lib/supabase/client';
 import { toDateKey } from '../../utils/helpers';
 import type { TaskWeekday } from '../../types';
 import {
+  buildCalendarEvents,
+  buildRoutineAttentionItems,
   buildTaskViewsForDate,
   filterTasksForParent,
+  type CalendarEventView,
   type CloudTaskView,
+  type RoutineAttentionItem,
   type TaskCompletionRow,
   type TaskDraft,
   type TaskRow,
@@ -30,9 +34,19 @@ function getDayRange(dateKey: string) {
   return { fromIso: start.toISOString(), toIso: end.toISOString() };
 }
 
+function getLookbackRange(now = new Date()) {
+  const start = new Date(now);
+  start.setDate(start.getDate() - 120);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(now);
+  end.setDate(end.getDate() + 1);
+  end.setHours(0, 0, 0, 0);
+  return { fromIso: start.toISOString(), toIso: end.toISOString() };
+}
+
 export function useCloudTasks(parentId?: string | null) {
   const { user } = useAuth();
-  const { activeFamily, currentMembership, isChild, isParent } = useFamily();
+  const { activeFamily, currentMembership, familyMembers, isChild, isParent } = useFamily();
   const familyId = activeFamily?.id ?? currentMembership?.familyId ?? null;
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [completions, setCompletions] = useState<TaskCompletionRow[]>([]);
@@ -54,8 +68,10 @@ export function useCloudTasks(parentId?: string | null) {
       const visibleTasks = isParent
         ? await listTasksForParent(user.id)
         : await listTasksForFamily(familyId);
-      const range = getDayRange(todayKey);
-      const visibleCompletions = await loadCompletions({ familyId, ...range });
+      const visibleCompletions = await loadCompletions({
+        familyId,
+        ...(isChild ? getLookbackRange() : getDayRange(todayKey)),
+      });
       setTasks(visibleTasks);
       setCompletions(visibleCompletions);
     } catch (loadError) {
@@ -80,8 +96,28 @@ export function useCloudTasks(parentId?: string | null) {
   );
 
   const activeTasks = useMemo(
-    () => selectedParentTasks.filter((task) => task.is_active),
+    () => selectedParentTasks.filter((task) => task.is_active && (task.item_type ?? 'routine_task') === 'routine_task'),
     [selectedParentTasks],
+  );
+
+  const calendarEvents: CalendarEventView[] = useMemo(
+    () => buildCalendarEvents(selectedParentTasks),
+    [selectedParentTasks],
+  );
+
+  const parentNames = useMemo(
+    () =>
+      Object.fromEntries(
+        familyMembers
+          .filter((member) => member.role === 'parent')
+          .map((member) => [member.id, member.fullName]),
+      ),
+    [familyMembers],
+  );
+
+  const attentionItems: RoutineAttentionItem[] = useMemo(
+    () => buildRoutineAttentionItems(selectedParentTasks, completions, parentNames),
+    [completions, parentNames, selectedParentTasks],
   );
 
   const saveTask = useCallback(
@@ -95,6 +131,9 @@ export function useCloudTasks(parentId?: string | null) {
       repeatDays?: TaskWeekday[];
       requiresAlarm: boolean;
       requiresPhoto: boolean;
+      itemType?: TaskDraft['itemType'];
+      missNotificationThreshold?: TaskDraft['missNotificationThreshold'];
+      eventTimezone?: string;
     }) => {
       if (!user || !familyId || !isChild || saving) return;
       setSaving(true);
@@ -139,7 +178,7 @@ export function useCloudTasks(parentId?: string | null) {
   );
 
   const complete = useCallback(
-    async (task: CloudTaskView, photoPath?: string | null) => {
+    async (task: CloudTaskView) => {
       if (!user || !familyId || !isParent || saving) return;
       setSaving(true);
       setError(null);
@@ -149,7 +188,6 @@ export function useCloudTasks(parentId?: string | null) {
           familyId,
           completedBy: user.id,
           scheduledFor: task.scheduledFor,
-          photoPath,
         });
         await refresh();
       } catch (saveError) {
@@ -162,37 +200,11 @@ export function useCloudTasks(parentId?: string | null) {
     [familyId, isParent, refresh, saving, user],
   );
 
-  const completeByOccurrence = useCallback(
-    async (input: {
-      taskId: string;
-      familyId: string;
-      scheduledFor: string;
-    }) => {
-      if (!user || !isParent || saving) return;
-      setSaving(true);
-      setError(null);
-      try {
-        await completeTaskOccurrence({
-          taskId: input.taskId,
-          familyId: input.familyId,
-          completedBy: user.id,
-          scheduledFor: input.scheduledFor,
-          photoPath: null,
-        });
-        await refresh();
-      } catch (saveError) {
-        setError(toTaskError(saveError));
-        throw saveError;
-      } finally {
-        setSaving(false);
-      }
-    },
-    [isParent, refresh, saving, user],
-  );
-
   return {
     tasks,
     activeTasks,
+    attentionItems,
+    calendarEvents,
     todayTasks,
     loading,
     saving,
@@ -201,6 +213,5 @@ export function useCloudTasks(parentId?: string | null) {
     saveTask,
     deactivateTask: deactivate,
     completeTask: complete,
-    completeTaskByOccurrence: completeByOccurrence,
   };
 }

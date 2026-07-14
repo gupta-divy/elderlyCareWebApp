@@ -104,7 +104,6 @@ export async function completeTask(input: {
   familyId: string;
   completedBy: string;
   scheduledFor: string;
-  photoPath?: string | null;
 }, provided?: Client) {
   const { data, error } = await client(provided)
     .from('task_completions')
@@ -115,7 +114,7 @@ export async function completeTask(input: {
       scheduled_for: input.scheduledFor,
       status: 'completed',
       completed_at: new Date().toISOString(),
-      photo_path: input.photoPath ?? null,
+      photo_path: null,
     })
     .select('*')
     .single();

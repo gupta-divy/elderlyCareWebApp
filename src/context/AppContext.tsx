@@ -37,13 +37,6 @@ import type {
 import { localBackend } from '../storage/store';
 import { generateId } from '../utils/helpers';
 
-type PendingTaskPhotoFlow = {
-  occurrenceId: string;
-  taskId: string;
-  scheduledFor?: string;
-  familyId?: string;
-};
-
 export type AuthenticatedFamilyProfile = {
   id: string;
   fullName: string;
@@ -76,24 +69,13 @@ type AppContextValue = {
   getTaskSummary: (
     parentId: string,
   ) => { total: number; done: number; pending: number; missed: number };
-  completeTask: (
-    occurrenceId: string,
-    options?: { proofUrl?: string; photoConfirmed?: boolean },
-  ) => void;
+  completeTask: (occurrenceId: string) => void;
   reopenTask: (occurrenceId: string) => void;
   saveTask: (task: TaskFormInput, taskId?: string) => void;
   deleteTask: (taskId: string) => void;
   deleteTaskOccurrence: (occurrenceId: string) => void;
   setTaskEnabled: (taskId: string, enabled: boolean) => void;
   requestAlarmPermission: () => Promise<NotificationPermission | 'unsupported'>;
-  pendingTaskPhotoFlow: PendingTaskPhotoFlow | null;
-  startTaskPhotoFlow: (
-    occurrenceId: string,
-    taskId: string,
-    scheduledFor?: string,
-    familyId?: string,
-  ) => void;
-  cancelTaskPhotoFlow: () => void;
   addDocument: (doc: Omit<Document, 'id' | 'uploadDate'>) => void;
   deleteDocument: (docId: string) => void;
   updateParent: (parentId: string, patch: Partial<ParentProfile>) => void;
@@ -146,7 +128,6 @@ function emptyStepsData(): ParentProfile['stepsData'] {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(EMPTY_STATE);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [pendingTaskPhotoFlow, setPendingTaskPhotoFlow] = useState<PendingTaskPhotoFlow | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -316,7 +297,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const resetDemo = useCallback(() => {
     void localBackend.resetState().then((nextState) => {
-      setPendingTaskPhotoFlow(null);
       setState(normalizeTaskState(nextState));
     });
   }, []);
@@ -351,10 +331,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const completeTask = useCallback(
-    (occurrenceId: string, options?: { proofUrl?: string; photoConfirmed?: boolean }) => {
+    (occurrenceId: string) => {
       if (!currentUser) return;
       setState((currentState) =>
-        completeTaskOccurrence(currentState, occurrenceId, currentUser.id, options),
+        completeTaskOccurrence(currentState, occurrenceId, currentUser.id),
       );
     },
     [currentUser],
@@ -382,24 +362,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setTaskEnabled = useCallback((taskId: string, enabled: boolean) => {
     setState((currentState) => setTaskActive(currentState, taskId, enabled));
-  }, []);
-
-  const startTaskPhotoFlow = useCallback((
-    occurrenceId: string,
-    taskId: string,
-    scheduledFor?: string,
-    familyId?: string,
-  ) => {
-    setPendingTaskPhotoFlow({
-      occurrenceId,
-      taskId,
-      scheduledFor,
-      familyId,
-    });
-  }, []);
-
-  const cancelTaskPhotoFlow = useCallback(() => {
-    setPendingTaskPhotoFlow(null);
   }, []);
 
   const addDocument = useCallback(
@@ -724,9 +686,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteTaskOccurrence,
     setTaskEnabled,
     requestAlarmPermission,
-    pendingTaskPhotoFlow,
-    startTaskPhotoFlow,
-    cancelTaskPhotoFlow,
     addDocument,
     deleteDocument,
     updateParent,

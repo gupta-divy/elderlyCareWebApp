@@ -13,6 +13,8 @@ exports.deleteTaskOccurrenceRecord = deleteTaskOccurrenceRecord;
 exports.setTaskActive = setTaskActive;
 exports.markMissedTaskOccurrences = markMissedTaskOccurrences;
 exports.normalizeTaskState = normalizeTaskState;
+exports.getRoutineAttentionForParent = getRoutineAttentionForParent;
+exports.getCalendarEventsForParent = getCalendarEventsForParent;
 const helpers_1 = require("../utils/helpers");
 const taskRecurrence_1 = require("../features/tasks/taskRecurrence");
 exports.DEFAULT_FAMILY_ID = 'family-demo';
@@ -23,7 +25,7 @@ function buildAlarmId(taskId, occurrenceId) {
     return `alarm-${taskId}-${occurrenceId}`;
 }
 function isTaskVisible(task) {
-    return task.isActive;
+    return task.isActive && task.itemType === 'routine_task';
 }
 function getOccurrenceForTask(occurrences, taskId, scheduledFor) {
     return occurrences.find((occurrence) => occurrence.taskId === taskId && occurrence.scheduledFor === scheduledFor);
@@ -58,6 +60,8 @@ function getNextPendingOccurrence(task, now) {
     };
 }
 function syncTaskOccurrenceAndAlarm(state, task, now) {
+    if (task.itemType === 'calendar_event')
+        return state;
     let nextState = state;
     const pendingOccurrence = getPendingOccurrenceForTask(nextState.taskOccurrences, task.id);
     const nextPending = task.isActive ? getNextPendingOccurrence(task, now) : undefined;
@@ -70,7 +74,7 @@ function syncTaskOccurrenceAndAlarm(state, task, now) {
                 completedAt: undefined,
                 completedBy: undefined,
                 photoConfirmed: undefined,
-                proofUrl: pendingOccurrence?.proofUrl,
+                proofUrl: undefined,
                 createdAt: pendingOccurrence?.createdAt ?? nextPending.createdAt,
             }),
         };
@@ -192,7 +196,10 @@ function syncTaskState(state, taskId, now) {
     return syncTaskOccurrenceAndAlarm(state, task, now);
 }
 function saveTaskDefinition(state, input, actor, taskId, now = new Date()) {
-    const occurrenceAt = (0, taskRecurrence_1.getNextOccurrenceForInput)(input, now).toISOString();
+    const itemType = input.itemType ?? 'routine_task';
+    const occurrenceAt = itemType === 'routine_task'
+        ? (0, taskRecurrence_1.getNextOccurrenceForInput)(input, now).toISOString()
+        : undefined;
     const existing = taskId
         ? state.taskTemplates.find((task) => task.id === taskId)
         : undefined;
@@ -201,13 +208,24 @@ function saveTaskDefinition(state, input, actor, taskId, now = new Date()) {
         familyId: existing?.familyId ?? exports.DEFAULT_FAMILY_ID,
         assignedParentId: input.parentId,
         createdByChildId: existing?.createdByChildId ?? actor.id,
+        itemType,
         title: input.title.trim(),
         time: input.time,
         startDate: input.startDate || undefined,
-        repeat: input.repeat,
-        selectedWeekdays: input.repeat === 'set_days' ? [...input.selectedWeekdays].sort() : undefined,
-        ringAlarm: Boolean(input.time && input.ringAlarm),
-        requiresPhoto: input.requiresPhoto,
+        repeat: itemType === 'calendar_event' ? 'once' : input.repeat,
+        selectedWeekdays: itemType === 'routine_task' && input.repeat === 'set_days' ? [...input.selectedWeekdays].sort() : undefined,
+        ringAlarm: itemType === 'routine_task' && Boolean(input.time && input.ringAlarm),
+        requiresPhoto: false,
+        missNotificationThreshold: itemType === 'routine_task'
+            ? input.missNotificationThreshold ?? existing?.missNotificationThreshold ?? taskRecurrence_1.DEFAULT_MISS_NOTIFICATION_THRESHOLD
+            : 0,
+        consecutiveMissCount: itemType === 'routine_task' ? existing?.consecutiveMissCount ?? 0 : 0,
+        attentionActive: itemType === 'routine_task' ? existing?.attentionActive ?? false : false,
+        attentionRaisedAt: itemType === 'routine_task' ? existing?.attentionRaisedAt : undefined,
+        lastMissedOccurrenceAt: itemType === 'routine_task' ? existing?.lastMissedOccurrenceAt : undefined,
+        eventTimezone: itemType === 'calendar_event' ? input.eventTimezone ?? existing?.eventTimezone ?? (0, taskRecurrence_1.getLocalTimezone)() : undefined,
+        eventReminderOneDaySentAt: existing?.eventReminderOneDaySentAt,
+        eventReminderTwoHoursSentAt: existing?.eventReminderTwoHoursSentAt,
         isActive: true,
         nextOccurrenceAt: occurrenceAt,
         createdAt: existing?.createdAt ?? now.toISOString(),
@@ -222,9 +240,9 @@ function saveTaskDefinition(state, input, actor, taskId, now = new Date()) {
             ? occurrence.taskId !== existing.id || occurrence.status !== 'pending'
             : true),
     };
-    return syncTaskOccurrenceAndAlarm(nextState, nextTask, now);
+    return itemType === 'routine_task' ? syncTaskOccurrenceAndAlarm(nextState, nextTask, now) : nextState;
 }
-function completeTaskOccurrence(state, occurrenceId, completedBy, options, now = new Date()) {
+function completeTaskOccurrence(state, occurrenceId, completedBy, now = new Date()) {
     const occurrence = state.taskOccurrences.find((entry) => entry.id === occurrenceId);
     if (!occurrence || occurrence.status === 'done')
         return state;
@@ -237,14 +255,18 @@ function completeTaskOccurrence(state, occurrenceId, completedBy, options, now =
             status: 'done',
             completedAt: now.toISOString(),
             completedBy,
-            photoConfirmed: options?.photoConfirmed ?? entry.photoConfirmed,
-            proofUrl: options?.proofUrl ?? entry.proofUrl,
+            photoConfirmed: undefined,
+            proofUrl: undefined,
             updatedAt: now.toISOString(),
         }
         : entry);
     const nextTask = {
         ...task,
         nextOccurrenceAt: (0, taskRecurrence_1.getNextOccurrenceAfterTask)(task, new Date(occurrence.scheduledFor))?.toISOString(),
+        consecutiveMissCount: 0,
+        attentionActive: false,
+        attentionRaisedAt: undefined,
+        lastMissedOccurrenceAt: undefined,
         updatedAt: now.toISOString(),
     };
     const nextState = {
@@ -338,6 +360,15 @@ function markMissedTaskOccurrences(state, now = new Date()) {
         const nextTask = {
             ...task,
             nextOccurrenceAt: (0, taskRecurrence_1.getNextOccurrenceAfterTask)(task, new Date(occurrence.scheduledFor))?.toISOString(),
+            consecutiveMissCount: (task.consecutiveMissCount ?? 0) + 1,
+            attentionActive: (task.missNotificationThreshold ?? taskRecurrence_1.DEFAULT_MISS_NOTIFICATION_THRESHOLD) > 0 &&
+                (task.consecutiveMissCount ?? 0) + 1 >= (task.missNotificationThreshold ?? taskRecurrence_1.DEFAULT_MISS_NOTIFICATION_THRESHOLD),
+            attentionRaisedAt: (task.missNotificationThreshold ?? taskRecurrence_1.DEFAULT_MISS_NOTIFICATION_THRESHOLD) > 0 &&
+                (task.consecutiveMissCount ?? 0) + 1 >= (task.missNotificationThreshold ?? taskRecurrence_1.DEFAULT_MISS_NOTIFICATION_THRESHOLD) &&
+                !task.attentionActive
+                ? now.toISOString()
+                : task.attentionRaisedAt,
+            lastMissedOccurrenceAt: occurrence.scheduledFor,
             updatedAt: now.toISOString(),
         };
         nextState = {
@@ -351,4 +382,50 @@ function markMissedTaskOccurrences(state, now = new Date()) {
 }
 function normalizeTaskState(state, now = new Date()) {
     return state.taskTemplates.reduce((nextState, task) => syncTaskOccurrenceAndAlarm(nextState, task, now), state);
+}
+function getRoutineAttentionForParent(state, parentId) {
+    return state.taskTemplates
+        .filter((task) => task.itemType === 'routine_task' &&
+        task.isActive &&
+        task.attentionActive &&
+        task.missNotificationThreshold > 0 &&
+        task.consecutiveMissCount >= task.missNotificationThreshold &&
+        (!parentId || task.assignedParentId === parentId))
+        .map((task) => ({
+        taskId: task.id,
+        parentId: task.assignedParentId,
+        title: task.title,
+        consecutiveMisses: task.consecutiveMissCount,
+        threshold: task.missNotificationThreshold,
+        lastMissedAt: task.lastMissedOccurrenceAt,
+    }));
+}
+function getCalendarEventsForParent(state, parentId) {
+    return state.taskTemplates
+        .filter((task) => task.itemType === 'calendar_event' &&
+        task.isActive &&
+        (!parentId || task.assignedParentId === parentId))
+        .map((task) => ({
+        id: task.id,
+        familyId: task.familyId,
+        parentId: task.assignedParentId,
+        title: task.title,
+        date: task.startDate ?? (0, helpers_1.toDateKey)(),
+        time: task.time,
+        timezone: task.eventTimezone ?? (0, taskRecurrence_1.getLocalTimezone)(),
+        scheduledFor: (0, taskRecurrence_1.getNextOccurrenceForInput)({
+            itemType: 'calendar_event',
+            parentId: task.assignedParentId,
+            title: task.title,
+            time: task.time,
+            startDate: task.startDate,
+            repeat: 'once',
+            selectedWeekdays: [],
+            ringAlarm: false,
+            requiresPhoto: false,
+            missNotificationThreshold: 0,
+            eventTimezone: task.eventTimezone,
+        }, new Date()).toISOString(),
+    }))
+        .sort((left, right) => new Date(left.scheduledFor).getTime() - new Date(right.scheduledFor).getTime());
 }

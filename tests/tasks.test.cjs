@@ -236,7 +236,6 @@ test('completes a standard task occurrence and generates the next repeating occu
     state,
     pendingOccurrence.id,
     'parent-1',
-    undefined,
     new Date('2026-07-10T17:15:00'),
   );
   const doneOccurrence = completedState.taskOccurrences.find((entry) => entry.id === pendingOccurrence.id);
@@ -263,7 +262,6 @@ test('parent task list keeps today done occurrence visible instead of switching 
     state,
     pendingOccurrence.id,
     'parent-1',
-    undefined,
     new Date('2026-07-10T17:15:00'),
   );
   const parentTasks = getTasksForParent(completedState, 'parent-1');
@@ -276,7 +274,7 @@ test('parent task list keeps today done occurrence visible instead of switching 
   );
 });
 
-test('completes a photo-required task without storing proof metadata', () => {
+test('completes a routine task without proof metadata', () => {
   const state = normalizeTaskState(cloneSeed(), new Date('2026-07-10T07:00:00'));
   const pendingOccurrence = state.taskOccurrences.find(
     (occurrence) => occurrence.taskId === 'task-1' && occurrence.status === 'pending',
@@ -287,7 +285,6 @@ test('completes a photo-required task without storing proof metadata', () => {
     state,
     pendingOccurrence.id,
     'parent-1',
-    undefined,
     new Date('2026-07-10T08:05:00'),
   );
   const doneOccurrence = completedState.taskOccurrences.find((entry) => entry.id === pendingOccurrence.id);
@@ -295,6 +292,22 @@ test('completes a photo-required task without storing proof metadata', () => {
   assert.equal(doneOccurrence?.status, 'done');
   assert.equal(doneOccurrence?.photoConfirmed, undefined);
   assert.equal(doneOccurrence?.proofUrl, undefined);
+});
+
+test('ignores photo requirement when saving a task definition', () => {
+  const actor = getChildActor();
+  const nextState = saveTaskDefinition(
+    cloneSeed(),
+    buildInput({ requiresPhoto: true }),
+    actor,
+    undefined,
+    new Date('2026-07-10T09:00:00'),
+  );
+  const task = nextState.taskTemplates.at(-1);
+  const occurrence = nextState.taskOccurrences.find((entry) => entry.taskId === task?.id);
+
+  assert.equal(task?.requiresPhoto, false);
+  assert.equal(occurrence?.photoRequired, false);
 });
 
 test('ignores duplicate done taps for the same occurrence', () => {
@@ -308,14 +321,12 @@ test('ignores duplicate done taps for the same occurrence', () => {
     state,
     pendingOccurrence.id,
     'parent-1',
-    undefined,
     new Date('2026-07-10T17:15:00'),
   );
   const twice = completeTaskOccurrence(
     once,
     pendingOccurrence.id,
     'parent-1',
-    undefined,
     new Date('2026-07-10T17:16:00'),
   );
 
@@ -436,6 +447,7 @@ test('maps task rows to app task templates and insert payloads', () => {
   });
   assert.equal(insert.title, 'Medicine');
   assert.equal(insert.repeat_days, null);
+  assert.equal(insert.requires_photo, false);
   const untimedInsert = toTaskInsert({
     familyId: 'family-id',
     assignedTo: 'parent-id',
@@ -526,6 +538,7 @@ test('permission helper prevents parent cross-family completion', () => {
 test('tasks migration enables RLS and uniqueness for task completions', () => {
   const migration = fs.readFileSync('supabase/migrations/20260713000400_cloud_backed_tasks.sql', 'utf8');
   const anytimeMigration = fs.readFileSync('supabase/migrations/20260713000500_allow_anytime_tasks.sql', 'utf8');
+  const removePhotoMigration = fs.readFileSync('supabase/migrations/20260714000200_remove_task_photo_requirement.sql', 'utf8');
 
   assert.match(migration, /alter table public\.tasks enable row level security/i);
   assert.match(migration, /alter table public\.task_completions enable row level security/i);
@@ -533,4 +546,6 @@ test('tasks migration enables RLS and uniqueness for task completions', () => {
   assert.match(migration, /tasks_select_family_child_or_assigned_parent/i);
   assert.match(migration, /task_completions_insert_assigned_parent/i);
   assert.match(anytimeMigration, /alter column task_time drop not null/i);
+  assert.match(removePhotoMigration, /requires_photo = false/i);
+  assert.match(removePhotoMigration, /tasks_requires_photo_disabled_check/i);
 });

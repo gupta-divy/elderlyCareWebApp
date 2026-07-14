@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { BigButton } from '../../components/BigButton';
 import { useApp } from '../../context/AppContext';
-import type { CloudTaskView } from '../../features/tasks/taskData';
+import type { CalendarEventView, CloudTaskView } from '../../features/tasks/taskData';
 import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 import { repeatLabel } from '../../features/tasks/taskValidation';
 import { formatDate, formatLocalTime } from '../../utils/helpers';
@@ -38,14 +37,6 @@ function TaskCard({
                 Alarm
               </span>
             ) : null}
-            {task.requiresPhoto ? (
-              <span
-                aria-label="Requires photo indicator"
-                className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700"
-              >
-                Needs Photo
-              </span>
-            ) : null}
           </div>
         </div>
         <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -59,7 +50,7 @@ function TaskCard({
         </p>
       ) : null}
 
-      {task.status === 'pending' ? (
+      {task.status === 'pending' || task.status === 'missed' ? (
         <BigButton
           aria-label="Done button"
           className="mt-4 !min-h-[56px] !py-3 !text-lg"
@@ -70,6 +61,29 @@ function TaskCard({
         </BigButton>
       ) : null}
     </article>
+  );
+}
+
+function UpcomingEvents({ events }: { events: CalendarEventView[] }) {
+  const upcoming = events.filter((event) => event.isUpcoming).slice(0, 3);
+
+  return (
+    <section className="space-y-3">
+      <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Upcoming Events</h3>
+      {upcoming.length === 0 ? (
+        <p className="rounded-xl bg-white p-4 text-sm text-slate-500 shadow-sm">No upcoming events.</p>
+      ) : (
+        upcoming.map((event) => (
+          <article key={event.id} className="rounded-2xl border-2 border-sky-200 bg-sky-50 p-4">
+            <h3 className="text-xl font-bold text-slate-800">{event.title}</h3>
+            <p className="text-lg text-slate-600">
+              {formatDate(event.scheduledFor)} at {formatLocalTime(event.time)}
+            </p>
+            <p className="text-sm text-slate-500">{event.timezone}</p>
+          </article>
+        ))
+      )}
+    </section>
   );
 }
 
@@ -99,12 +113,11 @@ function TaskGroup({
 export function ParentTasks() {
   const {
     selectedParent,
-    startTaskPhotoFlow,
   } = useApp();
-  const navigate = useNavigate();
   const parent = selectedParent;
   const {
     completeTask,
+    calendarEvents,
     error,
     loading,
     refresh,
@@ -149,24 +162,26 @@ export function ParentTasks() {
 
       {loading ? (
         <p className="text-center text-slate-500">Loading tasks...</p>
-      ) : todayTasks.length === 0 ? (
-        <p className="text-center text-slate-500">No tasks right now. Rest well!</p>
       ) : (
         <>
-          <TaskGroup
-            title="Pending"
-            tasks={grouped.pending}
-            onComplete={(task) => {
-              if (task.requiresPhoto) {
-                startTaskPhotoFlow(task.occurrenceId, task.id, task.scheduledFor, task.familyId);
-                navigate('/parent/send-photo', { state: { taskPhotoFlow: true } });
-                return;
-              }
-              void handleComplete(task);
-            }}
-          />
-          <TaskGroup title="Completed" tasks={grouped.completed} onComplete={() => undefined} />
-          <TaskGroup title="Missed" tasks={grouped.missed} onComplete={() => undefined} />
+          <UpcomingEvents events={calendarEvents} />
+          {todayTasks.length === 0 ? (
+            <p className="text-center text-slate-500">No routine tasks right now. Rest well!</p>
+          ) : (
+            <>
+              <TaskGroup
+                title="Pending"
+                tasks={grouped.pending}
+                onComplete={(task) => void handleComplete(task)}
+              />
+              <TaskGroup title="Completed" tasks={grouped.completed} onComplete={() => undefined} />
+              <TaskGroup
+                title="Missed"
+                tasks={grouped.missed}
+                onComplete={(task) => void handleComplete(task)}
+              />
+            </>
+          )}
         </>
       )}
     </div>

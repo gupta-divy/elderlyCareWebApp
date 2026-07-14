@@ -1,6 +1,7 @@
 import type {
   AppState,
   TaskAlarmRecord,
+  MissNotificationThreshold,
   TaskOccurrence,
   TaskStatus,
   TaskTemplate,
@@ -10,9 +11,11 @@ import type {
 import { generateId, toDateKey } from '../utils/helpers';
 import {
   TASK_GRACE_PERIOD_MINUTES,
+  DEFAULT_MISS_NOTIFICATION_THRESHOLD,
   buildOccurrenceId,
   getNextOccurrenceAfterTask,
   getNextOccurrenceForInput,
+  getLocalTimezone,
   isOccurrenceOverdue,
   type TaskFormInput,
 } from '../features/tasks/taskRecurrence';
@@ -28,7 +31,7 @@ function buildAlarmId(taskId: string, occurrenceId: string): string {
 }
 
 function isTaskVisible(task: TaskTemplate): boolean {
-  return task.isActive;
+  return task.isActive && task.itemType === 'routine_task';
 }
 
 export function getOccurrenceForTask(
@@ -92,6 +95,8 @@ function syncTaskOccurrenceAndAlarm(
   task: TaskTemplate,
   now: Date,
 ): AppState {
+  if (task.itemType === 'calendar_event') return state;
+
   let nextState = state;
   const pendingOccurrence = getPendingOccurrenceForTask(nextState.taskOccurrences, task.id);
   const nextPending = task.isActive ? getNextPendingOccurrence(task, now) : undefined;
@@ -105,7 +110,7 @@ function syncTaskOccurrenceAndAlarm(
         completedAt: undefined,
         completedBy: undefined,
         photoConfirmed: undefined,
-        proofUrl: pendingOccurrence?.proofUrl,
+        proofUrl: undefined,
         createdAt: pendingOccurrence?.createdAt ?? nextPending.createdAt,
       }),
     };
@@ -276,7 +281,10 @@ export function saveTaskDefinition(
   taskId?: string,
   now = new Date(),
 ): AppState {
-  const occurrenceAt = getNextOccurrenceForInput(input, now).toISOString();
+  const itemType = input.itemType ?? 'routine_task';
+  const occurrenceAt = itemType === 'routine_task'
+    ? getNextOccurrenceForInput(input, now).toISOString()
+    : undefined;
   const existing = taskId
     ? state.taskTemplates.find((task) => task.id === taskId)
     : undefined;
@@ -286,14 +294,26 @@ export function saveTaskDefinition(
     familyId: existing?.familyId ?? DEFAULT_FAMILY_ID,
     assignedParentId: input.parentId,
     createdByChildId: existing?.createdByChildId ?? actor.id,
+    itemType,
     title: input.title.trim(),
     time: input.time,
     startDate: input.startDate || undefined,
-    repeat: input.repeat,
+    repeat: itemType === 'calendar_event' ? 'once' : input.repeat,
     selectedWeekdays:
-      input.repeat === 'set_days' ? [...input.selectedWeekdays].sort() : undefined,
-    ringAlarm: Boolean(input.time && input.ringAlarm),
-    requiresPhoto: input.requiresPhoto,
+      itemType === 'routine_task' && input.repeat === 'set_days' ? [...input.selectedWeekdays].sort() : undefined,
+    ringAlarm: itemType === 'routine_task' && Boolean(input.time && input.ringAlarm),
+    requiresPhoto: false,
+    missNotificationThreshold:
+      itemType === 'routine_task'
+        ? input.missNotificationThreshold ?? existing?.missNotificationThreshold ?? DEFAULT_MISS_NOTIFICATION_THRESHOLD
+        : 0,
+    consecutiveMissCount: itemType === 'routine_task' ? existing?.consecutiveMissCount ?? 0 : 0,
+    attentionActive: itemType === 'routine_task' ? existing?.attentionActive ?? false : false,
+    attentionRaisedAt: itemType === 'routine_task' ? existing?.attentionRaisedAt : undefined,
+    lastMissedOccurrenceAt: itemType === 'routine_task' ? existing?.lastMissedOccurrenceAt : undefined,
+    eventTimezone: itemType === 'calendar_event' ? input.eventTimezone ?? existing?.eventTimezone ?? getLocalTimezone() : undefined,
+    eventReminderOneDaySentAt: existing?.eventReminderOneDaySentAt,
+    eventReminderTwoHoursSentAt: existing?.eventReminderTwoHoursSentAt,
     isActive: true,
     nextOccurrenceAt: occurrenceAt,
     createdAt: existing?.createdAt ?? now.toISOString(),
@@ -312,14 +332,13 @@ export function saveTaskDefinition(
     ),
   };
 
-  return syncTaskOccurrenceAndAlarm(nextState, nextTask, now);
+  return itemType === 'routine_task' ? syncTaskOccurrenceAndAlarm(nextState, nextTask, now) : nextState;
 }
 
 export function completeTaskOccurrence(
   state: AppState,
   occurrenceId: string,
   completedBy: string,
-  options?: { proofUrl?: string; photoConfirmed?: boolean },
   now = new Date(),
 ): AppState {
   const occurrence = state.taskOccurrences.find((entry) => entry.id === occurrenceId);
@@ -335,8 +354,8 @@ export function completeTaskOccurrence(
           status: 'done' as TaskStatus,
           completedAt: now.toISOString(),
           completedBy,
-          photoConfirmed: options?.photoConfirmed ?? entry.photoConfirmed,
-          proofUrl: options?.proofUrl ?? entry.proofUrl,
+          photoConfirmed: undefined,
+          proofUrl: undefined,
           updatedAt: now.toISOString(),
         }
       : entry,
@@ -345,6 +364,10 @@ export function completeTaskOccurrence(
   const nextTask = {
     ...task,
     nextOccurrenceAt: getNextOccurrenceAfterTask(task, new Date(occurrence.scheduledFor))?.toISOString(),
+    consecutiveMissCount: 0,
+    attentionActive: false,
+    attentionRaisedAt: undefined,
+    lastMissedOccurrenceAt: undefined,
     updatedAt: now.toISOString(),
   };
 
@@ -481,6 +504,17 @@ export function markMissedTaskOccurrences(state: AppState, now = new Date()): Ap
     const nextTask = {
       ...task,
       nextOccurrenceAt: getNextOccurrenceAfterTask(task, new Date(occurrence.scheduledFor))?.toISOString(),
+      consecutiveMissCount: (task.consecutiveMissCount ?? 0) + 1,
+      attentionActive:
+        (task.missNotificationThreshold ?? DEFAULT_MISS_NOTIFICATION_THRESHOLD) > 0 &&
+        (task.consecutiveMissCount ?? 0) + 1 >= (task.missNotificationThreshold ?? DEFAULT_MISS_NOTIFICATION_THRESHOLD),
+      attentionRaisedAt:
+        (task.missNotificationThreshold ?? DEFAULT_MISS_NOTIFICATION_THRESHOLD) > 0 &&
+        (task.consecutiveMissCount ?? 0) + 1 >= (task.missNotificationThreshold ?? DEFAULT_MISS_NOTIFICATION_THRESHOLD) &&
+        !task.attentionActive
+          ? now.toISOString()
+          : task.attentionRaisedAt,
+      lastMissedOccurrenceAt: occurrence.scheduledFor,
       updatedAt: now.toISOString(),
     };
 
@@ -503,4 +537,61 @@ export function normalizeTaskState(state: AppState, now = new Date()): AppState 
     (nextState, task) => syncTaskOccurrenceAndAlarm(nextState, task, now),
     state,
   );
+}
+
+export function getRoutineAttentionForParent(state: AppState, parentId?: string) {
+  return state.taskTemplates
+    .filter(
+      (task) =>
+        task.itemType === 'routine_task' &&
+        task.isActive &&
+        task.attentionActive &&
+        task.missNotificationThreshold > 0 &&
+        task.consecutiveMissCount >= task.missNotificationThreshold &&
+        (!parentId || task.assignedParentId === parentId),
+    )
+    .map((task) => ({
+      taskId: task.id,
+      parentId: task.assignedParentId,
+      title: task.title,
+      consecutiveMisses: task.consecutiveMissCount,
+      threshold: task.missNotificationThreshold as MissNotificationThreshold,
+      lastMissedAt: task.lastMissedOccurrenceAt,
+    }));
+}
+
+export function getCalendarEventsForParent(state: AppState, parentId?: string) {
+  return state.taskTemplates
+    .filter(
+      (task) =>
+        task.itemType === 'calendar_event' &&
+        task.isActive &&
+        (!parentId || task.assignedParentId === parentId),
+    )
+    .map((task) => ({
+      id: task.id,
+      familyId: task.familyId,
+      parentId: task.assignedParentId,
+      title: task.title,
+      date: task.startDate ?? toDateKey(),
+      time: task.time,
+      timezone: task.eventTimezone ?? getLocalTimezone(),
+      scheduledFor: getNextOccurrenceForInput(
+        {
+          itemType: 'calendar_event',
+          parentId: task.assignedParentId,
+          title: task.title,
+          time: task.time,
+          startDate: task.startDate,
+          repeat: 'once',
+          selectedWeekdays: [],
+          ringAlarm: false,
+          requiresPhoto: false,
+          missNotificationThreshold: 0,
+          eventTimezone: task.eventTimezone,
+        },
+        new Date(),
+      ).toISOString(),
+    }))
+    .sort((left, right) => new Date(left.scheduledFor).getTime() - new Date(right.scheduledFor).getTime());
 }

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TASK_GRACE_PERIOD_MINUTES = void 0;
+exports.DEFAULT_MISS_NOTIFICATION_THRESHOLD = exports.TASK_GRACE_PERIOD_MINUTES = void 0;
+exports.getLocalTimezone = getLocalTimezone;
 exports.combineLocalDateAndTime = combineLocalDateAndTime;
 exports.getNextOccurrenceForInput = getNextOccurrenceForInput;
 exports.getNextOccurrenceAfterTask = getNextOccurrenceAfterTask;
@@ -10,6 +11,10 @@ exports.doesTaskOccurOnDate = doesTaskOccurOnDate;
 exports.getScheduledForLocalDate = getScheduledForLocalDate;
 const helpers_1 = require("../../utils/helpers");
 exports.TASK_GRACE_PERIOD_MINUTES = 120;
+exports.DEFAULT_MISS_NOTIFICATION_THRESHOLD = 3;
+function getLocalTimezone() {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+}
 function parseTimeParts(time) {
     const [hours, minutes] = time.split(':').map(Number);
     return [hours || 0, minutes || 0];
@@ -61,6 +66,9 @@ function nextSelectedWeekday(selectedWeekdays, anchor, time, now) {
     return combineLocalDateAndTime((0, helpers_1.toDateKey)(addDays(nextWeekdayOnOrAfter(anchor, first), 7)), time);
 }
 function getNextOccurrenceForInput(input, now = new Date()) {
+    if (input.itemType === 'calendar_event') {
+        return combineLocalDateAndTime(input.startDate ?? (0, helpers_1.toDateKey)(now), input.time);
+    }
     const anchor = pickAnchorDate(input, now);
     const anchorDateKey = (0, helpers_1.toDateKey)(anchor);
     const anchorDateTime = combineLocalDateAndTime(anchorDateKey, input.time);
@@ -117,8 +125,11 @@ function getNextOccurrenceForInput(input, now = new Date()) {
 function getNextOccurrenceAfterTask(task, after) {
     if (!task.isActive)
         return undefined;
+    if (task.itemType === 'calendar_event')
+        return undefined;
     const startDate = task.startDate ? new Date(`${task.startDate}T00:00:00`) : after;
     const input = {
+        itemType: task.itemType,
         parentId: task.assignedParentId,
         title: task.title,
         time: task.time,
@@ -127,12 +138,19 @@ function getNextOccurrenceAfterTask(task, after) {
         selectedWeekdays: task.selectedWeekdays ?? [],
         ringAlarm: task.ringAlarm,
         requiresPhoto: task.requiresPhoto,
+        missNotificationThreshold: task.missNotificationThreshold,
+        eventTimezone: task.eventTimezone,
     };
     if (task.repeat === 'once') {
         const onlyOccurrence = getNextOccurrenceForInput(input, startDate);
         return onlyOccurrence.getTime() > after.getTime() ? onlyOccurrence : undefined;
     }
-    return getNextOccurrenceForInput(input, new Date(after.getTime() + 1000));
+    return getNextOccurrenceForInput({
+        ...input,
+        startDate: task.startDate && new Date(`${task.startDate}T00:00:00`).getTime() > after.getTime()
+            ? (0, helpers_1.toDateKey)(after)
+            : task.startDate,
+    }, new Date(after.getTime() + 1000));
 }
 function buildOccurrenceId(taskId, scheduledFor) {
     return `occ-${taskId}-${scheduledFor}`;
@@ -143,6 +161,8 @@ function isOccurrenceOverdue(occurrence, now, graceMinutes = exports.TASK_GRACE_
     return now.getTime() > dueTime.getTime();
 }
 function doesTaskOccurOnDate(task, date) {
+    if (task.itemType === 'calendar_event')
+        return false;
     const dateKey = (0, helpers_1.toDateKey)(date);
     const startDateKey = task.startDate ?? dateKey;
     const start = (0, helpers_1.startOfDay)(new Date(`${startDateKey}T00:00:00`));

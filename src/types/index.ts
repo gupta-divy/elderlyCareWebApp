@@ -28,12 +28,15 @@ export type TaskRepeat =
   | 'set_days';
 export type TaskStatus = 'pending' | 'done' | 'missed';
 export type TaskWeekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export type TaskItemType = 'routine_task' | 'calendar_event';
+export type MissNotificationThreshold = 0 | 2 | 3 | 4 | 5;
 
 export type TaskTemplate = {
   id: string;
   familyId: string;
   assignedParentId: string;
   createdByChildId: string;
+  itemType: TaskItemType;
   title: string;
   time: string;
   startDate?: string;
@@ -41,6 +44,14 @@ export type TaskTemplate = {
   selectedWeekdays?: TaskWeekday[];
   ringAlarm: boolean;
   requiresPhoto: boolean;
+  missNotificationThreshold: MissNotificationThreshold;
+  consecutiveMissCount: number;
+  attentionActive: boolean;
+  attentionRaisedAt?: string;
+  lastMissedOccurrenceAt?: string;
+  eventTimezone?: string;
+  eventReminderOneDaySentAt?: string;
+  eventReminderTwoHoursSentAt?: string;
   isActive: boolean;
   nextOccurrenceAt?: string;
   createdAt: string;
@@ -84,7 +95,7 @@ export type TaskAlarmRecord = {
 
 export type Document = {
   id: string;
-  category: 'bill' | 'medical' | 'policy' | 'other';
+  category: 'bills' | 'medical' | 'policies' | 'other';
   name: string;
   fileUrl: string;
   fileType?: 'image' | 'pdf' | 'other';

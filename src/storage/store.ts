@@ -58,11 +58,15 @@ function migrateLegacyTasks(tasks: LegacyTask[] | undefined): Pick<AppState, 'ta
     familyId: 'family-demo',
     assignedParentId: task.parentId,
     createdByChildId: 'child-1',
+    itemType: 'routine_task',
     title: task.title,
     time: task.time,
     repeat: task.repeat === 'once' ? 'once' : task.repeat,
     ringAlarm: task.isCritical,
-    requiresPhoto: task.requiresProof,
+    requiresPhoto: false,
+    missNotificationThreshold: 3,
+    consecutiveMissCount: task.status === 'missed' ? 1 : 0,
+    attentionActive: false,
     isActive: true,
     nextOccurrenceAt: task.createdAt,
     createdAt: task.createdAt,
@@ -77,11 +81,11 @@ function migrateLegacyTasks(tasks: LegacyTask[] | undefined): Pick<AppState, 'ta
       assignedParentId: task.parentId,
       scheduledFor: new Date(`${toDateKey(task.createdAt)}T${task.time}:00`).toISOString(),
       status: task.status === 'completed' ? 'done' : 'missed',
-      photoRequired: task.requiresProof,
+      photoRequired: false,
       completedAt: task.status === 'completed' ? task.createdAt : undefined,
       completedBy: task.status === 'completed' ? task.parentId : undefined,
-      photoConfirmed: task.status === 'completed' ? Boolean(task.proofUrl) : undefined,
-      proofUrl: task.proofUrl,
+      photoConfirmed: undefined,
+      proofUrl: undefined,
       createdAt: task.createdAt,
       updatedAt: task.createdAt,
     }));
@@ -99,7 +103,13 @@ function normalizeState(raw: unknown): AppState {
   const hasNewTaskModel = Array.isArray(parsed.taskTemplates);
       const migratedTasks = hasNewTaskModel
       ? {
-          taskTemplates: parsed.taskTemplates ?? [],
+          taskTemplates: (parsed.taskTemplates ?? []).map((task) => ({
+            ...task,
+            itemType: task.itemType ?? 'routine_task',
+            missNotificationThreshold: task.missNotificationThreshold ?? 3,
+            consecutiveMissCount: task.consecutiveMissCount ?? 0,
+            attentionActive: task.attentionActive ?? false,
+          })),
           taskOccurrences: parsed.taskOccurrences ?? [],
         }
     : migrateLegacyTasks(parsed.tasks);

@@ -16,6 +16,13 @@ function validateTaskInput(input, now = new Date()) {
     if (!title) {
         errors.title = 'Enter a task title.';
     }
+    if (input.itemType === 'calendar_event') {
+        if (!input.startDate)
+            errors.startDate = 'Choose an event date.';
+        if (!input.time)
+            errors.time = 'Choose an event time.';
+        return errors;
+    }
     if (input.repeat === 'set_days' && input.selectedWeekdays.length === 0) {
         errors.selectedWeekdays = 'Choose at least one day.';
     }

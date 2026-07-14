@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "tsc -p tsconfig.test.json && node --test tests/tasks.test.cjs tests/family.test.cjs"
+    "test": "tsc -p tsconfig.test.json && node --test tests/tasks.test.cjs tests/family.test.cjs tests/documents.test.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

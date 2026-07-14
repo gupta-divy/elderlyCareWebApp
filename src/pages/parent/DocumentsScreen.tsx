@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { BigButton } from '../../components/BigButton';
-import { mockDocumentsRepository } from '../../features/documents/mockDocumentsRepository';
+import { useCloudDocuments } from '../../features/documents/useCloudDocuments';
 
 export function DocumentsScreen() {
   const navigate = useNavigate();
-  const categories = mockDocumentsRepository.getCategories();
+  const { folderSummaries, loading, error } = useCloudDocuments();
 
   return (
     <div className="space-y-5">
@@ -24,12 +24,18 @@ export function DocumentsScreen() {
           Pick a folder
         </h2>
         <p className="mt-2 text-lg text-slate-600">
-          Open a folder to see your papers and photos.
+          Open family documents using private signed links.
         </p>
       </section>
 
+      {error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-lg font-semibold text-rose-700">
+          {error}
+        </div>
+      ) : null}
+
       <div className="grid gap-4">
-        {categories.map((category) => (
+        {folderSummaries.map((category) => (
           <BigButton
             key={category.id}
             variant="secondary"
@@ -42,6 +48,7 @@ export function DocumentsScreen() {
             onClick={() => navigate(`/parent/documents/${category.id}`)}
             className="!items-start !rounded-[28px] !border-0 !bg-white !px-6 !py-5 !text-left !text-slate-800 !shadow-[0_14px_32px_rgba(15,23,42,0.08)]"
             labelClassName="text-[1.6rem] leading-tight"
+            subtitle={loading ? 'Loading...' : `${category.count} document${category.count === 1 ? '' : 's'}`}
           >
             {category.name}
           </BigButton>
