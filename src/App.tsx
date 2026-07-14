@@ -14,8 +14,6 @@ import { ParentEmergency } from './pages/parent/ParentEmergency';
 import { DocumentsScreen } from './pages/parent/DocumentsScreen';
 import { DocumentFolderScreen } from './pages/parent/DocumentFolderScreen';
 import { CreateContactScreen } from './pages/parent/CreateContactScreen';
-import { FamilyVaultCameraScreen } from './pages/parent/FamilyVaultCameraScreen';
-import { FamilyVaultPreviewScreen } from './pages/parent/FamilyVaultPreviewScreen';
 import { SendPhotoScreen } from './pages/parent/SendPhotoScreen';
 import { ParentRemoteHelpScreen } from './pages/parent/ParentRemoteHelpScreen';
 import { ChildDashboard } from './pages/manager/ManagerDashboard';
@@ -155,22 +153,6 @@ export default function App() {
         }
       />
       <Route
-        path="/parent/family-vault/camera"
-        element={
-          <ProtectedRoute role="parent">
-            <FamilyVaultCameraScreen />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/parent/family-vault/:photoId"
-        element={
-          <ProtectedRoute role="parent">
-            <FamilyVaultPreviewScreen />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/parent"
         element={
           <ProtectedRoute role="parent">
@@ -205,10 +187,6 @@ export default function App() {
         <Route
           path="documents/:categoryId"
           element={<ChildDocumentFolderScreen />}
-        />
-        <Route
-          path="family-vault/:photoId"
-          element={<FamilyVaultPreviewScreen />}
         />
         <Route path="remote-support/join" element={<ChildJoinScreenShareScreen />} />
         <Route path="remote-support" element={<ChildRemoteSupportScreen />} />

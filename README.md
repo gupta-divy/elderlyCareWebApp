@@ -36,7 +36,6 @@ Optional local storage keys:
 | Variable | Default |
 |---------|---------|
 | `VITE_ELDERCARE_STORAGE_KEY` | `eldercare-connect-state` |
-| `VITE_ELDERCARE_PHOTO_STORAGE_KEY` | `eldercare-connect-family-vault` |
 
 ## Supabase Auth configuration
 
@@ -159,4 +158,3 @@ Use the Vite framework preset.
 | Output directory | `dist` |
 
 The included `vercel.json` rewrites client-side routes to `index.html` so refreshing `/login`, `/signup`, `/parent`, `/child/tasks`, and other React Router pages works in production.
-

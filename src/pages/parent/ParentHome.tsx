@@ -1,10 +1,7 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BigButton } from '../../components/BigButton';
 import { useApp } from '../../context/AppContext';
-import { getTodayFamilyVaultPhotos } from '../../features/photos/familyVaultStore';
 import { useCloudTasks } from '../../features/tasks/useCloudTasks';
-import { formatTime } from '../../utils/helpers';
 
 type ParentAction = {
   id: string;
@@ -23,38 +20,9 @@ const parentActions: ParentAction[] = [
 export function ParentHome() {
   const { selectedParent } = useApp();
   const navigate = useNavigate();
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const parent = selectedParent;
   const { todayTasks } = useCloudTasks(parent?.id);
   const pendingTasks = todayTasks.filter((task) => task.status === 'pending').length;
-  const todayPhotos = getTodayFamilyVaultPhotos();
-  const activePhoto = todayPhotos[currentPhotoIndex] ?? null;
-
-  useEffect(() => {
-    setCurrentPhotoIndex(0);
-  }, [parent?.id, todayPhotos.length]);
-
-  useEffect(() => {
-    if (todayPhotos.length <= 1) return;
-
-    const interval = window.setInterval(() => {
-      setCurrentPhotoIndex((currentIndex) => (currentIndex + 1) % todayPhotos.length);
-    }, 4500);
-
-    return () => window.clearInterval(interval);
-  }, [todayPhotos.length]);
-
-  const showPreviousPhoto = () => {
-    if (todayPhotos.length === 0) return;
-    setCurrentPhotoIndex((currentIndex) =>
-      currentIndex === 0 ? todayPhotos.length - 1 : currentIndex - 1,
-    );
-  };
-
-  const showNextPhoto = () => {
-    if (todayPhotos.length === 0) return;
-    setCurrentPhotoIndex((currentIndex) => (currentIndex + 1) % todayPhotos.length);
-  };
 
   if (!parent) return <p>No profile found.</p>;
 
@@ -72,92 +40,6 @@ export function ParentHome() {
           <div className="rounded-2xl bg-amber-50 px-4 py-3 text-center shadow-sm">
             <p className="text-3xl font-bold text-amber-600">{pendingTasks}</p>
             <p className="text-sm font-semibold text-amber-800">today's tasks</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="overflow-hidden rounded-[28px] border border-white/70 bg-white/95 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => navigate('/parent/family-vault/camera')}
-            className="absolute right-4 top-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-black/55 text-white shadow-lg"
-            aria-label="Open family vault camera"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M4 7h3l2-2h6l2 2h3v11H4z" />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => activePhoto && navigate(`/parent/family-vault/${activePhoto.id}`)}
-            className="block w-full text-left"
-            disabled={!activePhoto}
-          >
-            {activePhoto ? (
-              <img
-                src={activePhoto.imageUrl}
-                alt="Latest photo"
-                className="h-56 w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-56 w-full flex-col items-center justify-center bg-linear-to-br from-teal-50 via-cyan-50 to-amber-50 px-6 text-center">
-                <p className="text-xl font-semibold text-slate-800">Family album for today</p>
-                <p className="mt-2 max-w-xs text-sm text-slate-500">
-                  Tap the camera to add a fun photo to the shared family vault.
-                </p>
-              </div>
-            )}
-          </button>
-
-          {todayPhotos.length > 1 ? (
-            <>
-              <button
-                type="button"
-                onClick={showPreviousPhoto}
-                className="absolute left-4 top-1/2 min-h-11 min-w-11 -translate-y-1/2 rounded-full bg-black/50 px-3 py-3 text-xl font-bold text-white"
-                aria-label="Previous photo"
-              >
-                {'<'}
-              </button>
-              <button
-                type="button"
-                onClick={showNextPhoto}
-                className="absolute right-4 top-1/2 min-h-11 min-w-11 -translate-y-1/2 rounded-full bg-black/50 px-3 py-3 text-xl font-bold text-white"
-                aria-label="Next photo"
-              >
-                {'>'}
-              </button>
-            </>
-          ) : null}
-        </div>
-
-        <div className="px-5 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-base font-semibold text-slate-800">Latest photo</p>
-              <p className="text-sm text-slate-500">
-                {activePhoto
-                  ? `Family album for today. Shared ${formatTime(activePhoto.sharedAt)}`
-                  : 'No fun photos shared yet today.'}
-              </p>
-            </div>
-            {todayPhotos.length > 1 ? (
-              <p className="text-sm font-semibold text-teal-700">
-                {currentPhotoIndex + 1}/{todayPhotos.length}
-              </p>
-            ) : null}
           </div>
         </div>
       </section>

@@ -1,119 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { StepsChart } from '../../components/StepsChart';
 import { useApp } from '../../context/AppContext';
-import {
-  getTodayFamilyVaultPhotos,
-  type FamilyVaultPhoto,
-} from '../../features/photos/familyVaultStore';
 import { useCloudTasks } from '../../features/tasks/useCloudTasks';
-import { averageSteps, formatTime } from '../../utils/helpers';
+import { averageSteps } from '../../utils/helpers';
 import type { ParentProfile } from '../../types';
-
-function SharedTodayPhotoCarousel() {
-  const navigate = useNavigate();
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-  const todayPhotos = getTodayFamilyVaultPhotos().sort(
-    (first, second) =>
-      new Date(second.sharedAt).getTime() - new Date(first.sharedAt).getTime(),
-  );
-  const activePhoto = todayPhotos[currentPhotoIndex] ?? null;
-
-  useEffect(() => {
-    setCurrentPhotoIndex(0);
-  }, [todayPhotos.length]);
-
-  useEffect(() => {
-    if (todayPhotos.length <= 1) return;
-
-    const interval = window.setInterval(() => {
-      setCurrentPhotoIndex((currentIndex) => (currentIndex + 1) % todayPhotos.length);
-    }, 4500);
-
-    return () => window.clearInterval(interval);
-  }, [todayPhotos.length]);
-
-  const openPreview = (photo: FamilyVaultPhoto | null) => {
-    if (!photo) return;
-    navigate(`/child/family-vault/${photo.id}`);
-  };
-
-  const showPreviousPhoto = () => {
-    if (todayPhotos.length === 0) return;
-    setCurrentPhotoIndex((currentIndex) =>
-      currentIndex === 0 ? todayPhotos.length - 1 : currentIndex - 1,
-    );
-  };
-
-  const showNextPhoto = () => {
-    if (todayPhotos.length === 0) return;
-    setCurrentPhotoIndex((currentIndex) => (currentIndex + 1) % todayPhotos.length);
-  };
-
-  return (
-    <section className="overflow-hidden rounded-[28px] border border-white/70 bg-white/95 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => openPreview(activePhoto)}
-          className="block w-full text-left"
-          disabled={!activePhoto}
-        >
-          {activePhoto ? (
-            <img
-              src={activePhoto.imageUrl}
-              alt="Shared family vault"
-              className="h-56 w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-56 w-full flex-col items-center justify-center bg-linear-to-br from-teal-50 via-cyan-50 to-amber-50 px-6 text-center">
-              <p className="text-xl font-semibold text-slate-800">Family album for today</p>
-              <p className="mt-2 max-w-xs text-sm text-slate-500">
-                No fun photos shared yet today.
-              </p>
-            </div>
-          )}
-        </button>
-
-        {todayPhotos.length > 1 ? (
-          <>
-            <button
-              type="button"
-              onClick={showPreviousPhoto}
-              className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 px-3 py-3 text-xl font-bold text-white"
-              aria-label="Previous photo"
-            >
-              {'<'}
-            </button>
-            <button
-              type="button"
-              onClick={showNextPhoto}
-              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 px-3 py-3 text-xl font-bold text-white"
-              aria-label="Next photo"
-            >
-              {'>'}
-            </button>
-          </>
-        ) : null}
-      </div>
-
-      <div className="px-5 py-4">
-        <div className="flex items-start justify-between gap-4">
-          <p className="text-sm text-slate-500">
-            {activePhoto
-              ? `Shared ${formatTime(activePhoto.sharedAt)}`
-              : 'No fun photos shared yet today.'}
-          </p>
-          {todayPhotos.length > 1 ? (
-            <p className="text-sm font-semibold text-teal-700">
-              {currentPhotoIndex + 1}/{todayPhotos.length}
-            </p>
-          ) : null}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function ParentSummaryCard({ parent }: { parent: ParentProfile }) {
   const { todayTasks } = useCloudTasks(parent.id);
@@ -184,8 +73,6 @@ export function ChildDashboard() {
 
   return (
     <div className="space-y-6">
-      <SharedTodayPhotoCarousel />
-
       <section className="space-y-4">
         {parents.map((parent) => (
           <ParentSummaryCard key={parent.id} parent={parent} />
