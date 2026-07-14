@@ -20,7 +20,7 @@ const childNav: NavItem[] = [
 ];
 
 export function Layout() {
-  const { currentUser } = useApp();
+  const { currentUser, exitDemo, isDemoMode } = useApp();
   const { signOut } = useAuth();
   const { role } = useFamily();
   const navigate = useNavigate();
@@ -94,11 +94,16 @@ export function Layout() {
                 type="button"
                 onClick={() => {
                   setShowAccountMenu(false);
+                  if (isDemoMode) {
+                    exitDemo();
+                    navigate('/login', { replace: true });
+                    return;
+                  }
                   void signOut().finally(() => navigate('/login', { replace: true }));
                 }}
                 className="rounded-2xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white shadow-sm"
               >
-                Sign out
+                {isDemoMode ? 'Exit Demo' : 'Sign out'}
               </button>
             </div>
           </div>

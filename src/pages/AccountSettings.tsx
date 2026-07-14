@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFamily } from '../contexts/FamilyContext';
 
@@ -15,6 +17,8 @@ function roleLabel(role: string | undefined) {
 }
 
 export function AccountSettings() {
+  const navigate = useNavigate();
+  const { exitDemo, isDemoMode } = useApp();
   const { user } = useAuth();
   const {
     activeFamily,
@@ -259,6 +263,27 @@ export function AccountSettings() {
           ))}
         </div>
       </section>
+
+      {isDemoMode ? (
+        <section className="rounded-[28px] border border-dashed border-teal-300 bg-teal-50/70 p-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
+            Demo Mode
+          </p>
+          <p className="mt-2 text-sm font-semibold text-slate-600">
+            You are exploring sample data. Changes stay local to this demo session.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              exitDemo();
+              navigate('/login', { replace: true });
+            }}
+            className="mt-4 w-full rounded-2xl bg-teal-700 px-4 py-3 text-sm font-semibold text-white shadow-sm"
+          >
+            Exit Demo
+          </button>
+        </section>
+      ) : null}
     </div>
   );
 }

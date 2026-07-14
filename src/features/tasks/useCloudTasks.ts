@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFamily } from '../../contexts/FamilyContext';
 import { isSupabaseConfigured } from '../../lib/supabase/client';
 import { toDateKey } from '../../utils/helpers';
-import type { TaskWeekday } from '../../types';
+import type { TaskOccurrence, TaskTemplate, TaskWeekday } from '../../types';
 import {
   buildCalendarEvents,
   buildRoutineAttentionItems,
@@ -44,7 +45,54 @@ function getLookbackRange(now = new Date()) {
   return { fromIso: start.toISOString(), toIso: end.toISOString() };
 }
 
+function toDemoTaskRow(task: TaskTemplate): TaskRow {
+  return {
+    id: task.id,
+    family_id: task.familyId,
+    assigned_to: task.assignedParentId,
+    created_by: task.createdByChildId,
+    item_type: task.itemType,
+    title: task.title,
+    task_time: task.time || null,
+    start_date: task.startDate ?? toDateKey(task.createdAt),
+    repeat_type: task.repeat,
+    repeat_days: task.selectedWeekdays ?? null,
+    requires_alarm: task.ringAlarm,
+    requires_photo: false,
+    miss_notification_threshold: task.missNotificationThreshold,
+    consecutive_miss_count: task.consecutiveMissCount,
+    attention_active: task.attentionActive,
+    attention_raised_at: task.attentionRaisedAt ?? null,
+    last_missed_occurrence_at: task.lastMissedOccurrenceAt ?? null,
+    event_timezone: task.eventTimezone ?? null,
+    event_reminder_one_day_sent_at: task.eventReminderOneDaySentAt ?? null,
+    event_reminder_two_hours_sent_at: task.eventReminderTwoHoursSentAt ?? null,
+    is_active: task.isActive,
+    created_at: task.createdAt,
+    updated_at: task.updatedAt,
+  };
+}
+
+function toDemoCompletionRow(
+  occurrence: TaskOccurrence,
+  familyId: string,
+): TaskCompletionRow {
+  return {
+    id: occurrence.id,
+    task_id: occurrence.taskId,
+    family_id: familyId,
+    completed_by: occurrence.completedBy ?? occurrence.assignedParentId,
+    scheduled_for: occurrence.scheduledFor,
+    status: occurrence.status === 'done' ? 'completed' : occurrence.status,
+    completed_at: occurrence.completedAt ?? null,
+    photo_path: occurrence.proofUrl ?? null,
+    created_at: occurrence.createdAt,
+    updated_at: occurrence.updatedAt,
+  };
+}
+
 export function useCloudTasks(parentId?: string | null) {
+  const app = useApp();
   const { user } = useAuth();
   const { activeFamily, currentMembership, familyMembers, isChild, isParent } = useFamily();
   const familyId = activeFamily?.id ?? currentMembership?.familyId ?? null;
@@ -56,6 +104,10 @@ export function useCloudTasks(parentId?: string | null) {
   const todayKey = toDateKey();
 
   const refresh = useCallback(async () => {
+    if (app.isDemoMode) {
+      return;
+    }
+
     if (!isSupabaseConfigured || !user || !familyId) {
       setTasks([]);
       setCompletions([]);
@@ -79,20 +131,33 @@ export function useCloudTasks(parentId?: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [familyId, isParent, todayKey, user]);
+  }, [app.isDemoMode, familyId, isParent, todayKey, user]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
   const selectedParentTasks = useMemo(
-    () => (parentId ? filterTasksForParent(tasks, parentId) : tasks),
-    [parentId, tasks],
+    () => {
+      const sourceTasks = app.isDemoMode ? app.state.taskTemplates.map(toDemoTaskRow) : tasks;
+      return parentId ? filterTasksForParent(sourceTasks, parentId) : sourceTasks;
+    },
+    [app.isDemoMode, app.state.taskTemplates, parentId, tasks],
+  );
+
+  const demoCompletions = useMemo(
+    () =>
+      app.isDemoMode
+        ? app.state.taskOccurrences.map((occurrence) =>
+            toDemoCompletionRow(occurrence, familyId ?? 'family-demo'),
+          )
+        : completions,
+    [app.isDemoMode, app.state.taskOccurrences, completions, familyId],
   );
 
   const todayTasks = useMemo(
-    () => buildTaskViewsForDate(selectedParentTasks, completions, todayKey),
-    [completions, selectedParentTasks, todayKey],
+    () => buildTaskViewsForDate(selectedParentTasks, demoCompletions, todayKey),
+    [demoCompletions, selectedParentTasks, todayKey],
   );
 
   const activeTasks = useMemo(
@@ -110,14 +175,14 @@ export function useCloudTasks(parentId?: string | null) {
       Object.fromEntries(
         familyMembers
           .filter((member) => member.role === 'parent')
-          .map((member) => [member.id, member.fullName]),
+          .map((member) => [member.userId, member.profile.fullName]),
       ),
     [familyMembers],
   );
 
   const attentionItems: RoutineAttentionItem[] = useMemo(
-    () => buildRoutineAttentionItems(selectedParentTasks, completions, parentNames),
-    [completions, parentNames, selectedParentTasks],
+    () => buildRoutineAttentionItems(selectedParentTasks, demoCompletions, parentNames),
+    [demoCompletions, parentNames, selectedParentTasks],
   );
 
   const saveTask = useCallback(
@@ -135,6 +200,22 @@ export function useCloudTasks(parentId?: string | null) {
       missNotificationThreshold?: TaskDraft['missNotificationThreshold'];
       eventTimezone?: string;
     }) => {
+      if (app.isDemoMode) {
+        app.saveTask({
+          itemType: input.itemType ?? 'routine_task',
+          parentId: input.assignedTo,
+          title: input.title,
+          time: input.taskTime ?? '',
+          startDate: input.startDate ?? '',
+          repeat: input.repeatType,
+          selectedWeekdays: input.repeatDays ?? [],
+          ringAlarm: input.requiresAlarm,
+          requiresPhoto: false,
+          missNotificationThreshold: input.missNotificationThreshold,
+          eventTimezone: input.eventTimezone,
+        }, input.taskId);
+        return;
+      }
       if (!user || !familyId || !isChild || saving) return;
       setSaving(true);
       setError(null);
@@ -156,11 +237,15 @@ export function useCloudTasks(parentId?: string | null) {
         setSaving(false);
       }
     },
-    [familyId, isChild, refresh, saving, user],
+    [app, familyId, isChild, refresh, saving, user],
   );
 
   const deactivate = useCallback(
     async (taskId: string) => {
+      if (app.isDemoMode) {
+        app.deleteTask(taskId);
+        return;
+      }
       if (!isChild || saving) return;
       setSaving(true);
       setError(null);
@@ -174,11 +259,15 @@ export function useCloudTasks(parentId?: string | null) {
         setSaving(false);
       }
     },
-    [isChild, refresh, saving],
+    [app, isChild, refresh, saving],
   );
 
   const complete = useCallback(
     async (task: CloudTaskView) => {
+      if (app.isDemoMode) {
+        app.completeTask(task.occurrenceId);
+        return;
+      }
       if (!user || !familyId || !isParent || saving) return;
       setSaving(true);
       setError(null);
@@ -197,7 +286,7 @@ export function useCloudTasks(parentId?: string | null) {
         setSaving(false);
       }
     },
-    [familyId, isParent, refresh, saving, user],
+    [app, familyId, isParent, refresh, saving, user],
   );
 
   return {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFamily } from '../contexts/FamilyContext';
 import { friendlyAuthError } from '../lib/auth/errors';
@@ -16,6 +17,7 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function Login() {
   const { loading: authLoading, user, error: authError } = useAuth();
   const { loading: familyLoading, profile, currentMembership } = useFamily();
+  const { isDemoMode, startDemo } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const locationState = location.state as LocationState | null;
@@ -41,7 +43,7 @@ export function Login() {
 
   const loading = authLoading || familyLoading;
 
-  if (!loading && user && profile && currentMembership) {
+  if (!loading && (user || isDemoMode) && profile && currentMembership) {
     return <Navigate to={homeRoute} replace />;
   }
 
@@ -156,6 +158,37 @@ export function Login() {
           Create an account
         </Link>
       </p>
+
+      <section className="mt-8 rounded-[28px] border border-dashed border-teal-300 bg-teal-50/70 p-5">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
+          Try the Demo
+        </p>
+        <p className="mt-2 text-sm font-semibold text-slate-600">
+          Explore with sample family data. No Supabase session is created.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              startDemo('parent');
+              navigate('/parent', { replace: true });
+            }}
+            className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-teal-800 shadow-sm ring-1 ring-teal-200"
+          >
+            View as Parent
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              startDemo('child');
+              navigate('/child', { replace: true });
+            }}
+            className="rounded-2xl bg-teal-700 px-4 py-3 text-sm font-bold text-white shadow-sm"
+          >
+            View as Child
+          </button>
+        </div>
+      </section>
     </main>
   );
 }

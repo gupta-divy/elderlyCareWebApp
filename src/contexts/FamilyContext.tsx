@@ -90,7 +90,14 @@ function toFamilyProfiles(members: FamilyMember[]) {
 
 export function FamilyProvider({ children }: { children: ReactNode }) {
   const { user, authLoading } = useAuth();
-  const { logout: clearLocalUser, syncAuthenticatedProfile } = useApp();
+  const {
+    currentUser,
+    isDemoMode,
+    logout: clearLocalUser,
+    state,
+    syncAuthenticatedProfile,
+    updateCurrentUserProfile,
+  } = useApp();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [activeFamily, setActiveFamily] = useState<Family | null>(null);
   const [currentMembership, setCurrentMembership] = useState<FamilyMembership | null>(null);
@@ -108,7 +115,65 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     clearLocalUser();
   }, [clearLocalUser]);
 
+  const loadDemoFamily = useCallback(() => {
+    if (!currentUser) {
+      clearFamily();
+      return null;
+    }
+
+    const now = new Date().toISOString();
+    const nextProfile: Profile = {
+      id: currentUser.id,
+      fullName: currentUser.name,
+      email: currentUser.email,
+      role: currentUser.role,
+      whatsappNumber: currentUser.phoneNumber ?? null,
+      whatsappVerified: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const nextFamily = {
+      id: 'family-demo',
+      familyCode: 'DEMO42',
+      createdBy: 'child-1',
+      createdAt: now,
+    };
+    const nextMembers: FamilyMember[] = state.users.map((familyUser) => ({
+      id: `demo-member-${familyUser.id}`,
+      familyId: nextFamily.id,
+      userId: familyUser.id,
+      role: familyUser.role,
+      status: 'active',
+      isAdmin: familyUser.role === 'child',
+      createdAt: now,
+      profile: {
+        id: familyUser.id,
+        fullName: familyUser.name,
+        email: familyUser.email,
+        role: familyUser.role,
+        whatsappNumber: familyUser.phoneNumber ?? null,
+        whatsappVerified: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+    }));
+    const nextMembership = nextMembers.find((member) => member.userId === currentUser.id) ?? null;
+
+    setProfile(nextProfile);
+    setActiveFamily(nextFamily);
+    setCurrentMembership(nextMembership);
+    setFamilyMembers(nextMembers);
+    setError(null);
+    setLoading(false);
+
+    return nextProfile;
+  }, [clearFamily, currentUser, state.users]);
+
   const refreshFamily = useCallback(async (): Promise<Profile | null> => {
+    if (isDemoMode) {
+      return loadDemoFamily();
+    }
+
     if (!user || !isSupabaseConfigured) {
       clearFamily();
       return null;
@@ -223,7 +288,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [clearFamily, clearLocalUser, syncAuthenticatedProfile, user]);
+  }, [clearFamily, clearLocalUser, isDemoMode, loadDemoFamily, syncAuthenticatedProfile, user]);
 
   const updateProfile = useCallback(
     async (details: {
@@ -232,6 +297,35 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
       whatsappNumber: string | null;
     }): Promise<ProfileUpdateResult> => {
       if (!user || !profile || !isSupabaseConfigured) {
+        if (isDemoMode && profile) {
+          const nextFullName = details.fullName.trim().replace(/\s+/g, ' ');
+          const nextEmail = details.email.trim().toLowerCase();
+          const nextWhatsapp = details.whatsappNumber?.trim() || null;
+          const nextProfile = {
+            ...profile,
+            fullName: nextFullName,
+            email: nextEmail,
+            whatsappNumber: nextWhatsapp,
+            updatedAt: new Date().toISOString(),
+          };
+          updateCurrentUserProfile({
+            fullName: nextFullName,
+            email: nextEmail,
+            whatsappNumber: nextWhatsapp,
+          });
+          setProfile(nextProfile);
+          setFamilyMembers((members) =>
+            members.map((member) =>
+              member.userId === profile.id
+                ? {
+                    ...member,
+                    profile: nextProfile,
+                  }
+                : member,
+            ),
+          );
+          return { profile: nextProfile, emailConfirmationRequired: false };
+        }
         throw new Error('PROFILE_NOT_READY');
       }
 
@@ -276,11 +370,15 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         throw new Error(message);
       }
     },
-    [profile, refreshFamily, user],
+    [isDemoMode, profile, refreshFamily, updateCurrentUserProfile, user],
   );
 
   useEffect(() => {
     if (authLoading) return;
+    if (isDemoMode) {
+      void refreshFamily();
+      return;
+    }
     if (!user) {
       clearFamily();
       return;

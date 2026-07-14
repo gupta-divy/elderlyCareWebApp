@@ -33,7 +33,7 @@ function ProtectedRoute({
   role: 'child' | 'parent';
 }) {
   const location = useLocation();
-  const { isHydrated } = useApp();
+  const { isDemoMode, isHydrated } = useApp();
   const { loading: authLoading, user, signOut } = useAuth();
   const {
     loading: familyLoading,
@@ -53,7 +53,15 @@ function ProtectedRoute({
     );
   }
 
-  if (!user) {
+  if (isDemoMode && (!profile || !currentMembership || !currentRole)) {
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-lg items-center justify-center px-6 text-center text-slate-600">
+        Loading...
+      </main>
+    );
+  }
+
+  if (!user && !isDemoMode) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
@@ -104,10 +112,13 @@ function ProtectedRoute({
 }
 
 export default function App() {
-  const { isHydrated } = useApp();
+  const { isDemoMode, isHydrated } = useApp();
   const { loading: authLoading, user } = useAuth();
   const { loading: familyLoading, profile, currentMembership, role } = useFamily();
-  const loading = authLoading || familyLoading;
+  const loading =
+    authLoading ||
+    familyLoading ||
+    (isDemoMode && (!profile || !currentMembership || !role));
 
   return (
     <Routes>
@@ -118,7 +129,7 @@ export default function App() {
             <main className="mx-auto flex min-h-dvh max-w-lg items-center justify-center px-6 text-center text-slate-600">
               Loading...
             </main>
-          ) : user && profile && currentMembership ? (
+          ) : (user || isDemoMode) && profile && currentMembership ? (
             <Navigate to={getHomeRoute(role)} replace />
           ) : user ? (
             <Navigate to="/signup" replace />

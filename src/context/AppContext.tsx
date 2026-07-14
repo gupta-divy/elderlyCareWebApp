@@ -35,6 +35,7 @@ import type {
   User,
 } from '../types';
 import { localBackend } from '../storage/store';
+import { SEED_STATE } from '../data/seed';
 import { generateId } from '../utils/helpers';
 
 export type AuthenticatedFamilyProfile = {
@@ -54,11 +55,20 @@ export type AuthenticatedProfileSync = AuthenticatedFamilyProfile & {
 type AppContextValue = {
   state: AppState;
   isHydrated: boolean;
+  mode: 'authenticated' | 'demo-parent' | 'demo-child';
+  isDemoMode: boolean;
   currentUser: User | null;
   selectedParent: ParentProfile | null;
+  startDemo: (role: 'parent' | 'child') => void;
+  exitDemo: () => void;
   login: (userId: string) => void;
   logout: () => void;
   syncAuthenticatedProfile: (profile: AuthenticatedProfileSync) => void;
+  updateCurrentUserProfile: (details: {
+    fullName: string;
+    email: string;
+    whatsappNumber: string | null;
+  }) => void;
   switchRole: () => void;
   resetDemo: () => void;
   getParent: (id: string) => ParentProfile | undefined;
@@ -77,6 +87,7 @@ type AppContextValue = {
   setTaskEnabled: (taskId: string, enabled: boolean) => void;
   requestAlarmPermission: () => Promise<NotificationPermission | 'unsupported'>;
   addDocument: (doc: Omit<Document, 'id' | 'uploadDate'>) => void;
+  renameDocument: (docId: string, name: string) => void;
   deleteDocument: (docId: string) => void;
   updateParent: (parentId: string, patch: Partial<ParentProfile>) => void;
   updateEmergencyRoutine: (routine: EmergencyRoutine) => void;
@@ -125,9 +136,27 @@ function emptyStepsData(): ParentProfile['stepsData'] {
   return days;
 }
 
+function cloneDemoState(role: 'parent' | 'child'): AppState {
+  const state = structuredClone(SEED_STATE);
+  const currentUserId = role === 'parent' ? 'parent-1' : 'child-1';
+  const currentUser = state.users.find((user) => user.id === currentUserId);
+  return {
+    ...state,
+    currentUserId,
+    selectedParentId:
+      role === 'child'
+        ? currentUser?.linkedUsers.find((linkedId) =>
+            state.parents.some((parent) => parent.id === linkedId),
+          ) ?? state.selectedParentId
+        : null,
+  };
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(EMPTY_STATE);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [mode, setMode] = useState<AppContextValue['mode']>('authenticated');
+  const isDemoMode = mode !== 'authenticated';
 
   useEffect(() => {
     let isMounted = true;
@@ -143,10 +172,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (isDemoMode) return;
     if (state.users.length === 0) return;
     void localBackend.saveState(state);
     syncTaskAlarmRuntime(state);
-  }, [state]);
+  }, [isDemoMode, state]);
 
   const currentUser = useMemo(
     () => state.users.find((u) => u.id === state.currentUserId) ?? null,
@@ -176,6 +206,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [currentUser, linkedParents, state.selectedParentId]);
 
   const login = useCallback((userId: string) => {
+    setMode('authenticated');
     setState((currentState) => {
       const nextUser = currentState.users.find((user) => user.id === userId) ?? null;
       const nextSelectedParentId =
@@ -194,6 +225,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    setMode('authenticated');
+    setState((currentState) => ({
+      ...currentState,
+      currentUserId: null,
+      selectedParentId: null,
+    }));
+  }, []);
+
+  const startDemo = useCallback((role: 'parent' | 'child') => {
+    setMode(role === 'parent' ? 'demo-parent' : 'demo-child');
+    setState(normalizeTaskState(cloneDemoState(role)));
+    setIsHydrated(true);
+  }, []);
+
+  const exitDemo = useCallback(() => {
+    setMode('authenticated');
     setState((currentState) => ({
       ...currentState,
       currentUserId: null,
@@ -202,6 +249,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const syncAuthenticatedProfile = useCallback((profile: AuthenticatedProfileSync) => {
+    setMode('authenticated');
     setState((currentState) => {
       const familyProfilesById = new Map<string, AuthenticatedFamilyProfile>();
       for (const familyProfile of profile.familyProfiles) {
@@ -268,6 +316,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const updateCurrentUserProfile = useCallback(
+    (details: { fullName: string; email: string; whatsappNumber: string | null }) => {
+      setState((currentState) => {
+        const currentUserId = currentState.currentUserId;
+        if (!currentUserId) return currentState;
+
+        return {
+          ...currentState,
+          users: currentState.users.map((user) =>
+            user.id === currentUserId
+              ? {
+                  ...user,
+                  name: details.fullName,
+                  email: details.email,
+                  phoneNumber: details.whatsappNumber ?? undefined,
+                }
+              : user,
+          ),
+          parents: currentState.parents.map((parent) =>
+            parent.id === currentUserId ? { ...parent, name: details.fullName } : parent,
+          ),
+        };
+      });
+    },
+    [],
+  );
+
   const switchRole = useCallback(() => {
     setState((currentState) => {
       const user = currentState.users.find(
@@ -296,10 +371,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetDemo = useCallback(() => {
+    if (mode === 'demo-parent' || mode === 'demo-child') {
+      setState(normalizeTaskState(cloneDemoState(mode === 'demo-parent' ? 'parent' : 'child')));
+      return;
+    }
     void localBackend.resetState().then((nextState) => {
       setState(normalizeTaskState(nextState));
     });
-  }, []);
+  }, [mode]);
 
   const getParent = useCallback(
     (id: string) => state.parents.find((p) => p.id === id),
@@ -385,6 +464,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((currentState) => ({
       ...currentState,
       documents: currentState.documents.filter((d) => d.id !== docId),
+    }));
+  }, []);
+
+  const renameDocument = useCallback((docId: string, name: string) => {
+    setState((currentState) => ({
+      ...currentState,
+      documents: currentState.documents.map((document) =>
+        document.id === docId ? { ...document, name } : document,
+      ),
     }));
   }, []);
 
@@ -666,11 +754,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value: AppContextValue = {
     state,
     isHydrated,
+    mode,
+    isDemoMode,
     currentUser,
     selectedParent,
+    startDemo,
+    exitDemo,
     login,
     logout,
     syncAuthenticatedProfile,
+    updateCurrentUserProfile,
     switchRole,
     resetDemo,
     getParent,
@@ -687,6 +780,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTaskEnabled,
     requestAlarmPermission,
     addDocument,
+    renameDocument,
     deleteDocument,
     updateParent,
     updateEmergencyRoutine,

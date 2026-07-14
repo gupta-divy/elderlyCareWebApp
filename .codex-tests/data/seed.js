@@ -8,7 +8,7 @@ function last7DaysSteps(base) {
         d.setDate(d.getDate() - i);
         days.push({
             date: d.toISOString().slice(0, 10),
-            count: base + Math.floor(Math.random() * 2200),
+            count: base + ((6 - i) * 317) + (i % 2 === 0 ? 420 : 160),
         });
     }
     return days;
