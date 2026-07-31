@@ -53,10 +53,10 @@ export function ChildJoinScreenShareScreen() {
 
         <button
           type="button"
-          onClick={() => navigate('/child/settings')}
+          onClick={() => navigate('/child')}
           className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600"
         >
-          Back to setup
+          Back home
         </button>
 
         {joinMessage ? (

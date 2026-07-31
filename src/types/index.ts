@@ -120,18 +120,6 @@ export type DocumentItem = {
   createdAt?: string;
 };
 
-export type EmergencyStep = {
-  order: number;
-  action: 'notify_child' | 'call_contact' | 'call_ambulance' | 'share_location';
-  contactName?: string;
-  contactPhone?: string;
-};
-
-export type EmergencyRoutine = {
-  parentId: string;
-  steps: EmergencyStep[];
-};
-
 export type RemoteContactRole = 'child' | 'helper';
 
 export type TrustedRemoteContact = {
@@ -198,7 +186,6 @@ export type AppState = {
   taskOccurrences: TaskOccurrence[];
   taskAlarmRecords: TaskAlarmRecord[];
   documents: Document[];
-  emergencyRoutines: EmergencyRoutine[];
   remoteSetups: RemoteSetupState[];
   remoteHelpSessions: RemoteHelpSession[];
   currentUserId: string | null;

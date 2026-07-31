@@ -13,12 +13,11 @@ import { AccountTest } from './pages/AccountTest';
 import { AccountSettings } from './pages/AccountSettings';
 import { ParentHome } from './pages/parent/ParentHome';
 import { ParentTasks } from './pages/parent/ParentTasks';
-import { ParentEmergency } from './pages/parent/ParentEmergency';
 import { CreateContactScreen } from './pages/parent/CreateContactScreen';
 import { SendPhotoScreen } from './pages/parent/SendPhotoScreen';
+import { PhoneDiaryScreen } from './pages/parent/PhoneDiaryScreen';
 import { ChildDashboard } from './pages/manager/ManagerDashboard';
 import { ChildTasks } from './pages/manager/ManagerTasks';
-import { ChildSettings } from './pages/manager/ManagerSettings';
 import { SupabaseTest } from './pages/SupabaseTest';
 
 const SharedNotesScreen = lazy(() =>
@@ -233,7 +232,7 @@ export default function App() {
             </FeatureRoute>
           }
         />
-        <Route path="emergency" element={<ParentEmergency />} />
+        <Route path="phone-diary" element={<PhoneDiaryScreen />} />
         <Route
           path="remote-help"
           element={
@@ -311,7 +310,6 @@ export default function App() {
             </FeatureRoute>
           }
         />
-        <Route path="settings" element={<ChildSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

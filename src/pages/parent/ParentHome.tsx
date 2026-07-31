@@ -6,7 +6,7 @@ import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 import { formatLocalTime, toDateKey } from '../../utils/helpers';
 
 type ParentAction = {
-  id: 'camera' | 'tasks' | 'notes' | 'sos';
+  id: 'camera' | 'tasks' | 'notes' | 'phoneDiary';
   label: string;
   subtitle: string;
   to: string;
@@ -28,7 +28,7 @@ const parentActions: ParentAction[] = [
   },
   {
     id: 'tasks',
-    label: 'To-Do Tasks',
+    label: 'To-Do Things',
     subtitle: 'View reminders',
     to: '/parent/tasks',
     iconTone: 'bg-amber-50 text-amber-700',
@@ -46,13 +46,13 @@ const parentActions: ParentAction[] = [
     feature: 'sharedNotes',
   },
   {
-    id: 'sos',
-    label: 'SOS',
-    subtitle: 'Emergency help',
-    to: '/parent/emergency',
-    iconTone: 'bg-rose-50 text-rose-700',
-    borderTone: 'border-rose-100',
-    surface: 'hover:border-rose-200 active:bg-rose-50',
+    id: 'phoneDiary',
+    label: 'Phone Diary',
+    subtitle: 'Family numbers',
+    to: '/parent/phone-diary',
+    iconTone: 'bg-violet-50 text-violet-700',
+    borderTone: 'border-violet-100',
+    surface: 'hover:border-violet-200 active:bg-violet-50',
   },
 ];
 
@@ -100,13 +100,18 @@ function ParentActionIcon({ id }: { id: ParentAction['id'] }) {
     );
   }
 
-  return (
-    <svg viewBox="0 0 24 24" {...common}>
-      <path d="M12 3 3.8 6v5.8c0 5 3.4 7.8 8.2 9.2 4.8-1.4 8.2-4.2 8.2-9.2V6z" />
-      <path d="M12 8v5" />
-      <path d="M12 17h.01" />
-    </svg>
-  );
+  if (id === 'phoneDiary') {
+    return (
+      <svg viewBox="0 0 24 24" {...common}>
+        <path d="M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+        <path d="M9 9h6" />
+        <path d="M9 13h3" />
+        <path d="M16 3v18" />
+      </svg>
+    );
+  }
+
+  return null;
 }
 
 function getGreeting(now = new Date()) {

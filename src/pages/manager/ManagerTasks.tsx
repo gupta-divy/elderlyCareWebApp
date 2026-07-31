@@ -3,6 +3,7 @@ import { ParentSwitcher } from '../../components/ParentSwitcher';
 import { useApp } from '../../context/AppContext';
 import { useFeatureFlags } from '../../features/flags/featureFlags';
 import { useCloudTasks } from '../../features/tasks/useCloudTasks';
+import type { RoutineAttentionItem } from '../../features/tasks/taskData';
 import {
   DEFAULT_MISS_NOTIFICATION_THRESHOLD,
   getLocalTimezone,
@@ -99,8 +100,37 @@ function buildCalendarDays(monthDate: Date) {
   });
 }
 
+function buildDemoRoutineAttentionItems(parentId?: string): RoutineAttentionItem[] {
+  const now = new Date();
+  const minutesAgo = (minutes: number) => new Date(now.getTime() - minutes * 60 * 1000).toISOString();
+  const items: RoutineAttentionItem[] = [
+    {
+      taskId: 'demo:missed-morning-wellness',
+      parentId: 'parent-1',
+      parentName: 'Mohan Rao',
+      title: 'morning wellness reminder',
+      consecutiveMisses: 3,
+      threshold: 3,
+      message: 'Mohan Rao has missed "morning wellness reminder" 3 times in a row.',
+      lastMissedAt: minutesAgo(12),
+    },
+    {
+      taskId: 'demo:missed-evening-walk',
+      parentId: 'parent-2',
+      parentName: 'Leela Rao',
+      title: 'evening walk',
+      consecutiveMisses: 2,
+      threshold: 2,
+      message: 'Leela Rao has missed "evening walk" 2 times in a row.',
+      lastMissedAt: minutesAgo(48),
+    },
+  ];
+
+  return parentId ? items.filter((item) => item.parentId === parentId) : items;
+}
+
 export function ChildTasks() {
-  const { getLinkedParents, requestAlarmPermission, selectedParent } = useApp();
+  const { getLinkedParents, mode, requestAlarmPermission, selectedParent } = useApp();
   const { isFeatureEnabled } = useFeatureFlags();
   const calendarEnabled = isFeatureEnabled('calendar');
   const parents = getLinkedParents();
@@ -188,6 +218,10 @@ export function ChildTasks() {
 
     return [...upcoming, ...past];
   }, [calendarEvents, calendarMonth]);
+  const statusItems = useMemo(
+    () => (mode === 'demo-child' ? buildDemoRoutineAttentionItems(selectedParent?.id) : attentionItems),
+    [attentionItems, mode, selectedParent?.id],
+  );
 
   const resetForm = (itemType: TaskItemType = 'routine_task') => {
     setForm({
@@ -517,13 +551,13 @@ export function ChildTasks() {
       {loading ? (
         <p className="rounded-xl bg-white p-4 text-sm text-slate-500 shadow-sm">Loading tasks...</p>
       ) : activeTab === 'status' ? (
-        attentionItems.length === 0 ? (
+        statusItems.length === 0 ? (
           <p className="rounded-xl bg-white p-4 text-sm text-slate-500 shadow-sm">
             No routine tasks need attention right now.
           </p>
         ) : (
           <ul className="space-y-2">
-            {attentionItems.map((item) => (
+            {statusItems.map((item) => (
               <li key={item.taskId} className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                 <p className="text-sm font-bold text-amber-900">Needs Attention</p>
                 <p className="mt-1 text-sm text-amber-800">{item.message}</p>

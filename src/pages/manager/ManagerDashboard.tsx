@@ -34,6 +34,53 @@ function saveDismissedUpdates(childId: string, dismissed: Set<string>) {
   localStorage.setItem(dismissedStorageKey(childId), JSON.stringify([...dismissed]));
 }
 
+function buildDemoFamilyUpdates(now = new Date()): FamilyUpdate[] {
+  const minutesAgo = (minutes: number) => new Date(now.getTime() - minutes * 60 * 1000).toISOString();
+
+  return [
+    {
+      id: 'demo:missed-medicine',
+      type: 'repeated_missed_routine',
+      icon: '!',
+      parentId: 'parent-1',
+      parentName: 'Mohan Rao',
+      title: 'Routine needs attention',
+      description: 'Mohan has missed his morning wellness reminder for 3 days in a row.',
+      timestamp: minutesAgo(12),
+      action: {
+        label: 'View Tasks',
+        to: '/child/tasks',
+      },
+    },
+    {
+      id: 'demo:calendar-visit',
+      type: 'calendar_reminder',
+      icon: 'C',
+      parentId: 'parent-2',
+      parentName: 'Leela Rao',
+      title: 'Appointment coming up',
+      description: 'Leela has a physiotherapy visit tomorrow at 11:30 AM.',
+      timestamp: minutesAgo(35),
+      action: {
+        label: 'View Tasks',
+        to: '/child/tasks',
+      },
+    },
+    {
+      id: 'demo:shared-note',
+      type: 'shared_notes_updated',
+      icon: 'N',
+      title: 'Family note updated',
+      description: 'Anika added a note about grocery preferences and the new pharmacy number.',
+      timestamp: minutesAgo(64),
+      action: {
+        label: 'Open Notes',
+        to: '/child/notes',
+      },
+    },
+  ];
+}
+
 function NotificationCard({
   update,
   onDismiss,
@@ -131,10 +178,11 @@ export function ChildDashboard() {
   const calendarEnabled = isFeatureEnabled('calendar');
   const sharedNotesEnabled = isFeatureEnabled('sharedNotes');
   const remoteSupportEnabled = isFeatureEnabled('remoteSupport');
+  const showDemoUpdates = app.mode === 'demo-child';
 
   useEffect(() => {
-    setDismissedIds(currentChildId ? readDismissedUpdates(currentChildId) : new Set<string>());
-  }, [currentChildId]);
+    setDismissedIds(currentChildId && !showDemoUpdates ? readDismissedUpdates(currentChildId) : new Set<string>());
+  }, [currentChildId, showDemoUpdates]);
 
   const parentNames = useMemo(
     () =>
@@ -145,8 +193,10 @@ export function ChildDashboard() {
   );
 
   const updates = useMemo(
-    () =>
-      buildFamilyUpdates({
+    () => {
+      const sourceUpdates = showDemoUpdates
+        ? buildDemoFamilyUpdates()
+        : buildFamilyUpdates({
         attentionItems,
         calendarEvents: calendarEnabled ? calendarEvents : [],
         currentChildId,
@@ -154,7 +204,10 @@ export function ChildDashboard() {
         remoteHelpSessions: remoteSupportEnabled ? app.state.remoteHelpSessions : [],
         sharedNoteHasContent: sharedNotesEnabled && sharedNoteContent.trim().length > 0,
         sharedNoteUpdatedAt: sharedNotesEnabled ? sharedNoteUpdatedAt : null,
-      }).filter((update) => !dismissedIds.has(update.id)),
+      });
+
+      return sourceUpdates.filter((update) => !dismissedIds.has(update.id));
+    },
     [
       app.state.remoteHelpSessions,
       attentionItems,
@@ -167,6 +220,7 @@ export function ChildDashboard() {
       sharedNotesEnabled,
       sharedNoteContent,
       sharedNoteUpdatedAt,
+      showDemoUpdates,
     ],
   );
 
@@ -175,12 +229,14 @@ export function ChildDashboard() {
     setDismissedIds((current) => {
       const next = new Set(current);
       next.add(id);
-      saveDismissedUpdates(currentChildId, next);
+      if (!showDemoUpdates) {
+        saveDismissedUpdates(currentChildId, next);
+      }
       return next;
     });
   };
 
-  const loading = tasksLoading || noteLoading;
+  const loading = showDemoUpdates ? false : tasksLoading || noteLoading;
 
   return (
     <div className="space-y-3">

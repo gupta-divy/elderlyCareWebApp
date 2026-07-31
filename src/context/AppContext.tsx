@@ -25,7 +25,6 @@ import type { TaskFormInput } from '../features/tasks/taskRecurrence';
 import type {
   AppState,
   Document,
-  EmergencyRoutine,
   ParentProfile,
   RemoteHelpSession,
   RemoteHelpSessionStopReason,
@@ -90,7 +89,6 @@ type AppContextValue = {
   renameDocument: (docId: string, name: string) => void;
   deleteDocument: (docId: string) => void;
   updateParent: (parentId: string, patch: Partial<ParentProfile>) => void;
-  updateEmergencyRoutine: (routine: EmergencyRoutine) => void;
   getRemoteSetup: () => RemoteSetupState | undefined;
   saveRemoteSetup: (setup: RemoteSetupState) => void;
   getTrustedRemoteContacts: () => TrustedRemoteContact[];
@@ -117,7 +115,6 @@ const EMPTY_STATE: AppState = {
   taskOccurrences: [],
   taskAlarmRecords: [],
   documents: [],
-  emergencyRoutines: [],
   remoteSetups: [],
   remoteHelpSessions: [],
   currentUserId: null,
@@ -488,23 +485,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const updateEmergencyRoutine = useCallback((routine: EmergencyRoutine) => {
-    setState((currentState) => {
-      const exists = currentState.emergencyRoutines.some(
-        (entry) => entry.parentId === routine.parentId,
-      );
-
-      return {
-        ...currentState,
-        emergencyRoutines: exists
-          ? currentState.emergencyRoutines.map((entry) =>
-              entry.parentId === routine.parentId ? routine : entry,
-            )
-          : [...currentState.emergencyRoutines, routine],
-      };
-    });
-  }, []);
-
   const getRemoteSetup = useCallback(() => state.remoteSetups[0], [state.remoteSetups]);
 
   const saveRemoteSetup = useCallback((setup: RemoteSetupState) => {
@@ -783,7 +763,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     renameDocument,
     deleteDocument,
     updateParent,
-    updateEmergencyRoutine,
     getRemoteSetup,
     saveRemoteSetup,
     getTrustedRemoteContacts,

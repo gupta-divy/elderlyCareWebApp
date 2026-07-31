@@ -108,7 +108,7 @@ function buildTaskViewsForDate(tasks, completions, dateKey, now = new Date()) {
                 : 'pending';
         return {
             ...task,
-            occurrenceId: `occ-${task.id}-${dateKey}`,
+            occurrenceId: (0, taskRecurrence_1.buildOccurrenceId)(task.id, scheduledFor),
             scheduledFor,
             status,
             completedAt: completion?.completed_at ?? undefined,

@@ -101,7 +101,7 @@ function TaskGroup({
     <section className="space-y-3">
       <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">{title}</h3>
       {tasks.length === 0 ? (
-        <p className="rounded-xl bg-white p-4 text-sm text-slate-500 shadow-sm">No {title.toLowerCase()} tasks.</p>
+        <p className="rounded-xl bg-white p-4 text-sm text-slate-500 shadow-sm">No {title.toLowerCase()} things.</p>
       ) : (
         tasks.map((task) => (
           <TaskCard key={task.occurrenceId} task={task} onComplete={() => onComplete(task)} />
@@ -152,7 +152,7 @@ export function ParentTasks() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-slate-800">Today's Tasks</h2>
+      <h2 className="text-2xl font-bold text-slate-800">Today's To-Do Things</h2>
 
       {error ? (
         <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -164,12 +164,12 @@ export function ParentTasks() {
       ) : null}
 
       {loading ? (
-        <p className="text-center text-slate-500">Loading tasks...</p>
+        <p className="text-center text-slate-500">Loading things...</p>
       ) : (
         <>
           {calendarEnabled ? <UpcomingEvents events={calendarEvents} /> : null}
           {todayTasks.length === 0 ? (
-            <p className="text-center text-slate-500">No routine tasks right now. Rest well!</p>
+            <p className="text-center text-slate-500">No routine things right now. Rest well!</p>
           ) : (
             <>
               <TaskGroup

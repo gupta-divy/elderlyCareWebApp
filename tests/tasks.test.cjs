@@ -11,6 +11,7 @@ const {
 } = require('../.codex-tests/domain/tasks.js');
 const { SEED_STATE } = require('../.codex-tests/data/seed.js');
 const {
+  buildOccurrenceId,
   getNextOccurrenceAfterTask,
   getNextOccurrenceForInput,
   doesTaskOccurOnDate,
@@ -520,6 +521,7 @@ test('filters parent tasks and derives completed occurrence views', () => {
 
   assert.equal(parentRows.length, 1);
   assert.equal(views.length, 1);
+  assert.equal(views[0].occurrenceId, buildOccurrenceId('task-a', scheduledFor));
   assert.equal(views[0].status, 'done');
 });
 

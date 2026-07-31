@@ -7,7 +7,12 @@ import type {
   TaskView,
   TaskWeekday,
 } from '../../types';
-import { TASK_GRACE_PERIOD_MINUTES, doesTaskOccurOnDate, getScheduledForLocalDate } from './taskRecurrence';
+import {
+  TASK_GRACE_PERIOD_MINUTES,
+  buildOccurrenceId,
+  doesTaskOccurOnDate,
+  getScheduledForLocalDate,
+} from './taskRecurrence';
 import { formatDate, formatLocalTime, toDateKey } from '../../utils/helpers';
 
 export type TaskCompletionStatus = 'completed' | 'missed' | 'skipped';
@@ -212,7 +217,7 @@ export function buildTaskViewsForDate(
 
       return {
         ...task,
-        occurrenceId: `occ-${task.id}-${dateKey}`,
+        occurrenceId: buildOccurrenceId(task.id, scheduledFor),
         scheduledFor,
         status,
         completedAt: completion?.completed_at ?? undefined,

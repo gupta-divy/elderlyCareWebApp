@@ -11,7 +11,6 @@ const childNav: NavItem[] = [
   { to: '/child', label: 'Home', icon: 'H' },
   { to: '/child/tasks', label: 'Tasks', icon: 'T' },
   { to: '/child/notes', label: 'Notes', icon: 'N', feature: 'sharedNotes' },
-  { to: '/child/settings', label: 'Setup', icon: 'S' },
 ];
 
 export function Layout() {

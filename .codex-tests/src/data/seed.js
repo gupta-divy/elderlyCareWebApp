@@ -170,35 +170,6 @@ export const SEED_STATE = {
             uploadDate: new Date(Date.now() - 86400000 * 5).toISOString(),
         },
     ],
-    emergencyRoutines: [
-        {
-            parentId: 'parent-1',
-            steps: [
-                { order: 1, action: 'notify_child' },
-                {
-                    order: 2,
-                    action: 'call_contact',
-                    contactName: 'Neighbor - Suresh',
-                    contactPhone: '+919876543210',
-                },
-                { order: 3, action: 'call_ambulance' },
-                { order: 4, action: 'share_location' },
-            ],
-        },
-        {
-            parentId: 'parent-2',
-            steps: [
-                { order: 1, action: 'notify_child' },
-                {
-                    order: 2,
-                    action: 'call_contact',
-                    contactName: 'Sister - Kavita',
-                    contactPhone: '+919812345678',
-                },
-                { order: 3, action: 'call_ambulance' },
-            ],
-        },
-    ],
     remoteSetups: [
         {
             ownerUserId: 'parent-1',
