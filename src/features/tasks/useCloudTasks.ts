@@ -105,12 +105,14 @@ export function useCloudTasks(parentId?: string | null) {
 
   const refresh = useCallback(async () => {
     if (app.isDemoMode) {
+      setLoading(false);
       return;
     }
 
     if (!isSupabaseConfigured || !user || !familyId) {
       setTasks([]);
       setCompletions([]);
+      setLoading(false);
       return;
     }
 

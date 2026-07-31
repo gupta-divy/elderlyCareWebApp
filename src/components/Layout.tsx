@@ -1,23 +1,15 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFamily } from '../contexts/FamilyContext';
 
 type NavItem = { to: string; label: string; icon: string };
 
-const parentNav: NavItem[] = [
-  { to: '/parent', label: 'Home', icon: 'H' },
-  { to: '/parent/tasks', label: 'Tasks', icon: 'T' },
-  { to: '/parent/notes', label: 'Notes', icon: 'N' },
-  { to: '/parent/emergency', label: 'Help', icon: 'SOS' },
-];
-
 const childNav: NavItem[] = [
   { to: '/child', label: 'Home', icon: 'H' },
   { to: '/child/tasks', label: 'Tasks', icon: 'T' },
   { to: '/child/notes', label: 'Notes', icon: 'N' },
-  { to: '/child/documents', label: 'Docs', icon: 'D' },
   { to: '/child/settings', label: 'Setup', icon: 'S' },
 ];
 
@@ -26,10 +18,11 @@ export function Layout() {
   const { signOut } = useAuth();
   const { role } = useFamily();
   const navigate = useNavigate();
+  const location = useLocation();
   const isParent = (role ?? currentUser?.role) === 'parent';
-  const nav = isParent ? parentNav : childNav;
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const accountPath = isParent ? '/parent/account' : '/child/account';
+  const showParentHomeButton = isParent && location.pathname !== '/parent';
 
   return (
     <div className="app-shell mx-auto flex min-h-dvh flex-col bg-white/50 backdrop-blur-[2px]">
@@ -50,6 +43,31 @@ export function Layout() {
               <p className="truncate text-sm text-teal-50/90">{currentUser?.name}</p>
             </div>
           </div>
+
+          {showParentHomeButton ? (
+            <button
+              type="button"
+              onClick={() => navigate('/parent')}
+              className="flex min-h-11 shrink-0 items-center gap-2 rounded-2xl border border-white/30 bg-white px-4 py-2 text-sm font-bold text-teal-800 shadow-sm transition active:scale-[0.98]"
+              aria-label="Return to parent home"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 10.5 12 3l9 7.5" />
+                <path d="M5 10v10h14V10" />
+                <path d="M9 20v-6h6v6" />
+              </svg>
+              Home
+            </button>
+          ) : null}
         </div>
 
         {showAccountMenu ? (
@@ -112,34 +130,40 @@ export function Layout() {
         ) : null}
       </header>
 
-      <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 pb-28">
+      <main
+        className={`min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 ${
+          isParent ? 'pb-6' : 'pb-28'
+        }`}
+      >
         <Outlet />
       </main>
 
-      <nav
-        className="app-shell fixed bottom-0 left-0 right-0 z-10 mx-auto border-t border-white/60 bg-white/92 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur safe-area-bottom"
-        aria-label="Main navigation"
-      >
-        <div className={`grid ${isParent ? 'grid-cols-4' : 'grid-cols-5'} gap-0`}>
-          {nav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/parent' || item.to === '/child'}
-              className={({ isActive }) =>
-                `flex min-h-[64px] flex-col items-center justify-center py-2 text-xs transition-colors ${
-                  isActive
-                    ? 'bg-amber-50 text-teal-700'
-                    : 'text-slate-500 active:text-teal-700'
-                }`
-              }
-            >
-              <span className="mb-1 text-base font-black">{item.icon}</span>
-              <span className="text-sm font-semibold">{item.label}</span>
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+      {!isParent ? (
+        <nav
+          className="app-shell fixed bottom-0 left-0 right-0 z-10 mx-auto border-t border-white/60 bg-white/92 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur safe-area-bottom"
+          aria-label="Main navigation"
+        >
+          <div className="grid grid-cols-4 gap-0">
+            {childNav.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/child'}
+                className={({ isActive }) =>
+                  `flex min-h-[64px] flex-col items-center justify-center py-2 text-xs transition-colors ${
+                    isActive
+                      ? 'bg-amber-50 text-teal-700'
+                      : 'text-slate-500 active:text-teal-700'
+                  }`
+                }
+              >
+                <span className="mb-1 text-base font-black">{item.icon}</span>
+                <span className="text-sm font-semibold">{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+      ) : null}
     </div>
   );
 }

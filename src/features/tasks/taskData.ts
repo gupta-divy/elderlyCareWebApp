@@ -94,6 +94,8 @@ export type CalendarEventView = {
   timezone: string;
   scheduledFor: string;
   isUpcoming: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export function normalizeLocalDateKey(dateKey?: string | null, fallback = new Date()) {
@@ -322,6 +324,8 @@ export function buildCalendarEvents(
         timezone: task.event_timezone ?? 'UTC',
         scheduledFor,
         isUpcoming: new Date(scheduledFor).getTime() >= now.getTime(),
+        createdAt: task.created_at,
+        updatedAt: task.updated_at,
       };
     })
     .sort((left, right) => new Date(left.scheduledFor).getTime() - new Date(right.scheduledFor).getTime());

@@ -14,6 +14,10 @@ function demoStorageKey(familyId: string) {
   return `eldercare.shared-note.${familyId}`;
 }
 
+function demoUpdatedAtStorageKey(familyId: string) {
+  return `${demoStorageKey(familyId)}.updated-at`;
+}
+
 export function useSharedNote() {
   const app = useApp();
   const { user } = useAuth();
@@ -21,6 +25,7 @@ export function useSharedNote() {
   const familyId = activeFamily?.id ?? currentMembership?.familyId ?? null;
   const [content, setContentState] = useState('');
   const [lastSavedContent, setLastSavedContent] = useState('');
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +47,8 @@ export function useSharedNote() {
     if (!familyId) {
       setContentState('');
       setLastSavedContent('');
+      setLastUpdatedAt(null);
+      setLoading(false);
       return;
     }
 
@@ -50,14 +57,18 @@ export function useSharedNote() {
       const safeSaved = sanitizeSharedNoteContent(saved);
       setContentState(safeSaved);
       setLastSavedContent(safeSaved);
+      setLastUpdatedAt(localStorage.getItem(demoUpdatedAtStorageKey(familyId)));
       setStatus('saved');
       setError(null);
+      setLoading(false);
       return;
     }
 
     if (!isSupabaseConfigured || !user) {
       setContentState('');
       setLastSavedContent('');
+      setLastUpdatedAt(null);
+      setLoading(false);
       return;
     }
 
@@ -68,6 +79,7 @@ export function useSharedNote() {
       const nextContent = sanitizeSharedNoteContent(note?.content ?? '');
       setContentState(nextContent);
       setLastSavedContent(nextContent);
+      setLastUpdatedAt(note?.updated_at ?? null);
       setStatus('saved');
     } catch (loadError) {
       setError(toNoteError(loadError));
@@ -93,20 +105,25 @@ export function useSharedNote() {
         setStatus('saving');
         setError(null);
         try {
+          let savedAt: string | null = null;
           if (app.isDemoMode) {
+            savedAt = new Date().toISOString();
             localStorage.setItem(demoStorageKey(familyId), saveContent);
+            localStorage.setItem(demoUpdatedAtStorageKey(familyId), savedAt);
           } else {
             if (!isSupabaseConfigured || !user) {
               throw new Error('AUTH_REQUIRED');
             }
-            await upsertFamilyNote({
+            const note = await upsertFamilyNote({
               familyId,
               content: saveContent,
               updatedBy: user.id,
             });
+            savedAt = note.updated_at;
           }
 
           if (saveIdRef.current === saveId) {
+            setLastUpdatedAt(savedAt);
             setLastSavedContent(saveContent);
             setStatus(contentRef.current === saveContent ? 'saved' : 'idle');
           }
@@ -128,6 +145,7 @@ export function useSharedNote() {
     content,
     characterLimit: MAX_SHARED_NOTE_LENGTH,
     error,
+    lastUpdatedAt,
     loading,
     refresh,
     setContent,

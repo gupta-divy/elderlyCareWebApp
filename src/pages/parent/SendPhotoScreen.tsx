@@ -232,9 +232,24 @@ export function SendPhotoScreen() {
       <button
         type="button"
         onClick={() => navigate('/parent')}
-        className="absolute left-4 top-4 z-20 rounded-2xl bg-black/55 px-5 py-3 text-lg font-bold text-white"
+        className="absolute right-4 top-4 z-20 flex min-h-12 items-center gap-2 rounded-2xl bg-white px-4 py-2 text-base font-bold text-slate-950 shadow-[0_10px_30px_rgba(0,0,0,0.28)] active:scale-[0.98]"
+        aria-label="Return to parent home"
       >
-        Back
+        <svg
+          viewBox="0 0 24 24"
+          className="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3 10.5 12 3l9 7.5" />
+          <path d="M5 10v10h14V10" />
+          <path d="M9 20v-6h6v6" />
+        </svg>
+        Home
       </button>
 
       <div className="relative flex-1 overflow-hidden">

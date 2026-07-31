@@ -1,82 +1,195 @@
-import { StepsChart } from '../../components/StepsChart';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useSharedNote } from '../../features/notes/useSharedNote';
+import {
+  buildFamilyUpdates,
+  type FamilyUpdate,
+  type FamilyUpdateType,
+} from '../../features/notifications/familyUpdates';
 import { useCloudTasks } from '../../features/tasks/useCloudTasks';
-import { averageSteps } from '../../utils/helpers';
-import type { ParentProfile } from '../../types';
+import { formatTime } from '../../utils/helpers';
 
-function ParentSummaryCard({ parent }: { parent: ParentProfile }) {
-  const { todayTasks } = useCloudTasks(parent.id);
-  const summary = {
-    pending: todayTasks.filter((task) => task.status === 'pending').length,
-    missed: todayTasks.filter((task) => task.status === 'missed').length,
-    done: todayTasks.filter((task) => task.status === 'done').length,
-  };
-  const avg = averageSteps(parent.stepsData);
-  const todaySteps = parent.stepsData[parent.stepsData.length - 1]?.count ?? 0;
+const typeStyles: Record<FamilyUpdateType, string> = {
+  repeated_missed_routine: 'bg-rose-50 text-rose-700 ring-rose-100',
+  shared_notes_updated: 'bg-teal-50 text-teal-700 ring-teal-100',
+  calendar_reminder: 'bg-sky-50 text-sky-700 ring-sky-100',
+  help_request: 'bg-amber-50 text-amber-700 ring-amber-100',
+};
+
+function dismissedStorageKey(childId: string) {
+  return `eldercare.family-updates.dismissed.${childId}`;
+}
+
+function readDismissedUpdates(childId: string) {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(dismissedStorageKey(childId)) ?? '[]') as string[]);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function saveDismissedUpdates(childId: string, dismissed: Set<string>) {
+  localStorage.setItem(dismissedStorageKey(childId), JSON.stringify([...dismissed]));
+}
+
+function NotificationCard({
+  update,
+  onDismiss,
+}: {
+  update: FamilyUpdate;
+  onDismiss: (id: string) => void;
+}) {
+  const navigate = useNavigate();
 
   return (
-    <article className="space-y-4 rounded-[28px] border border-white/70 bg-white/95 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-2xl font-bold text-slate-800">{parent.name}</h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {parent.city} · Age {parent.age}
-                  </p>
-                </div>
-                <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700">
-                  Active
-                </span>
-              </div>
+    <article className="rounded-[24px] border border-white/70 bg-white/95 p-4 shadow-[0_16px_32px_rgba(15,23,42,0.08)]">
+      <div className="flex items-start gap-3">
+        <div
+          className={`flex size-11 shrink-0 items-center justify-center rounded-2xl text-base font-black ring-1 ${typeStyles[update.type]}`}
+          aria-hidden="true"
+        >
+          {update.icon}
+        </div>
 
-              <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
-                <div className="rounded-2xl bg-cyan-50 p-3">
-                  <p className="text-lg font-bold text-cyan-700">{todaySteps.toLocaleString()}</p>
-                  <p className="text-xs font-medium text-cyan-700">Daily steps</p>
-                </div>
-                <div className="rounded-2xl bg-amber-50 p-3">
-                  <p className="text-lg font-bold text-amber-700">{summary.pending}</p>
-                  <p className="text-xs font-medium text-amber-700">Pending tasks</p>
-                </div>
-                <div className="rounded-2xl bg-rose-50 p-3">
-                  <p className="text-lg font-bold text-rose-700">{summary.missed}</p>
-                  <p className="text-xs font-medium text-rose-700">Missed tasks</p>
-                </div>
-                <div className="rounded-2xl bg-emerald-50 p-3">
-                  <p className="text-lg font-bold text-emerald-700">{summary.done}</p>
-                  <p className="text-xs font-medium text-emerald-700">Completed tasks</p>
-                </div>
-              </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              {update.parentName ? (
+                <p className="truncate text-xs font-bold uppercase tracking-[0.16em] text-teal-700">
+                  {update.parentName}
+                </p>
+              ) : null}
+              <h3 className="mt-1 text-lg font-bold leading-snug text-slate-800">
+                {update.title}
+              </h3>
+            </div>
 
-              <div className="rounded-[24px] bg-slate-50 p-4">
-                <div className="mb-2 flex justify-between gap-3 text-sm">
-                  <span className="font-medium text-slate-700">Steps (7 days)</span>
-                  <span className="text-right text-slate-500">
-                    Today: {todaySteps.toLocaleString()} · Avg: {avg.toLocaleString()}
-                  </span>
-                </div>
-                <StepsChart stepsData={parent.stepsData} />
-              </div>
+            <button
+              type="button"
+              onClick={() => onDismiss(update.id)}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full text-xl font-bold text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label={`Dismiss ${update.title}`}
+            >
+              X
+            </button>
+          </div>
 
-              <div className="text-center">
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                  <p className="text-lg font-bold text-slate-800">{avg.toLocaleString()}</p>
-                  <p className="text-xs font-medium text-slate-500">Average daily steps</p>
-                </div>
-              </div>
-            </article>
+          <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">
+            {update.description}
+          </p>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <time className="text-xs font-semibold text-slate-500" dateTime={update.timestamp}>
+              {formatTime(update.timestamp)}
+            </time>
+
+            {update.action ? (
+              <button
+                type="button"
+                onClick={() => navigate(update.action?.to ?? '/child')}
+                className="min-h-10 rounded-full bg-teal-600 px-4 py-2 text-sm font-bold text-white shadow-sm"
+              >
+                {update.action.label}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function EmptyUpdates() {
+  return (
+    <section className="rounded-[28px] border border-dashed border-teal-200 bg-white/85 p-8 text-center shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+      <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-teal-50 text-2xl font-black text-teal-700">
+        OK
+      </div>
+      <h3 className="mt-4 text-2xl font-bold text-slate-800">Everything looks okay</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-500">
+        There are no family updates that need your attention.
+      </p>
+    </section>
   );
 }
 
 export function ChildDashboard() {
-  const { getLinkedParents } = useApp();
-  const parents = getLinkedParents();
+  const app = useApp();
+  const { attentionItems, calendarEvents, loading: tasksLoading } = useCloudTasks();
+  const {
+    content: sharedNoteContent,
+    lastUpdatedAt: sharedNoteUpdatedAt,
+    loading: noteLoading,
+  } = useSharedNote();
+  const currentChildId = app.currentUser?.role === 'child' ? app.currentUser.id : null;
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() =>
+    currentChildId ? readDismissedUpdates(currentChildId) : new Set<string>(),
+  );
+
+  useEffect(() => {
+    setDismissedIds(currentChildId ? readDismissedUpdates(currentChildId) : new Set<string>());
+  }, [currentChildId]);
+
+  const parentNames = useMemo(
+    () =>
+      Object.fromEntries(
+        app.getLinkedParents().map((parent) => [parent.id, parent.name]),
+      ),
+    [app],
+  );
+
+  const updates = useMemo(
+    () =>
+      buildFamilyUpdates({
+        attentionItems,
+        calendarEvents,
+        currentChildId,
+        parentNames,
+        remoteHelpSessions: app.state.remoteHelpSessions,
+        sharedNoteHasContent: sharedNoteContent.trim().length > 0,
+        sharedNoteUpdatedAt,
+      }).filter((update) => !dismissedIds.has(update.id)),
+    [
+      app.state.remoteHelpSessions,
+      attentionItems,
+      calendarEvents,
+      currentChildId,
+      dismissedIds,
+      parentNames,
+      sharedNoteContent,
+      sharedNoteUpdatedAt,
+    ],
+  );
+
+  const dismissUpdate = (id: string) => {
+    if (!currentChildId) return;
+    setDismissedIds((current) => {
+      const next = new Set(current);
+      next.add(id);
+      saveDismissedUpdates(currentChildId, next);
+      return next;
+    });
+  };
+
+  const loading = tasksLoading || noteLoading;
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-4">
-        {parents.map((parent) => (
-          <ParentSummaryCard key={parent.id} parent={parent} />
-        ))}
+    <div className="space-y-3">
+      {loading ? (
+        <p className="rounded-2xl bg-white/80 px-4 py-3 text-sm font-semibold text-slate-500">
+          Checking family updates...
+        </p>
+      ) : null}
+
+      <section className="space-y-3" aria-label="Family Updates feed">
+        {updates.length === 0 && !loading ? (
+          <EmptyUpdates />
+        ) : (
+          updates.map((update) => (
+            <NotificationCard key={update.id} update={update} onDismiss={dismissUpdate} />
+          ))
+        )}
       </section>
     </div>
   );

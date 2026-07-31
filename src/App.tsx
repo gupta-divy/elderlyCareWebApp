@@ -16,14 +16,11 @@ import { DocumentsScreen } from './pages/parent/DocumentsScreen';
 import { DocumentFolderScreen } from './pages/parent/DocumentFolderScreen';
 import { CreateContactScreen } from './pages/parent/CreateContactScreen';
 import { SendPhotoScreen } from './pages/parent/SendPhotoScreen';
-import { ParentRemoteHelpScreen } from './pages/parent/ParentRemoteHelpScreen';
 import { ChildDashboard } from './pages/manager/ManagerDashboard';
 import { ChildTasks } from './pages/manager/ManagerTasks';
 import { ChildDocuments } from './pages/manager/ManagerDocuments';
 import { ChildDocumentFolderScreen } from './pages/manager/ManagerDocumentFolderScreen';
 import { ChildSettings } from './pages/manager/ManagerSettings';
-import { ChildRemoteSupportScreen } from './pages/manager/ChildRemoteSupportScreen';
-import { ChildJoinScreenShareScreen } from './pages/manager/ChildJoinScreenShareScreen';
 import { SupabaseTest } from './pages/SupabaseTest';
 
 function ProtectedRoute({
@@ -177,7 +174,7 @@ export default function App() {
         <Route path="tasks" element={<ParentTasks />} />
         <Route path="notes" element={<SharedNotesScreen />} />
         <Route path="emergency" element={<ParentEmergency />} />
-        <Route path="remote-help" element={<ParentRemoteHelpScreen />} />
+        <Route path="remote-help" element={<Navigate to="/parent" replace />} />
         <Route path="create-contact" element={<CreateContactScreen />} />
         <Route path="documents" element={<DocumentsScreen />} />
         <Route
@@ -202,8 +199,8 @@ export default function App() {
           path="documents/:categoryId"
           element={<ChildDocumentFolderScreen />}
         />
-        <Route path="remote-support/join" element={<ChildJoinScreenShareScreen />} />
-        <Route path="remote-support" element={<ChildRemoteSupportScreen />} />
+        <Route path="remote-support/join" element={<Navigate to="/child" replace />} />
+        <Route path="remote-support" element={<Navigate to="/child" replace />} />
         <Route path="settings" element={<ChildSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

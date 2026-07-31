@@ -200,6 +200,8 @@ function buildCalendarEvents(tasks, now = new Date()) {
             timezone: task.event_timezone ?? 'UTC',
             scheduledFor,
             isUpcoming: new Date(scheduledFor).getTime() >= now.getTime(),
+            createdAt: task.created_at,
+            updatedAt: task.updated_at,
         };
     })
         .sort((left, right) => new Date(left.scheduledFor).getTime() - new Date(right.scheduledFor).getTime());
