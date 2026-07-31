@@ -39,7 +39,7 @@ export function Layout() {
               Me
             </button>
             <div className="min-w-0">
-              <h1 className="text-lg font-bold leading-tight">ElderCare Connect</h1>
+              <h1 className="text-lg font-bold leading-tight">Setu</h1>
               <p className="truncate text-sm text-teal-50/90">{currentUser?.name}</p>
             </div>
           </div>

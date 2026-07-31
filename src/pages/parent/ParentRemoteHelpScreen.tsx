@@ -46,7 +46,7 @@ export function ParentRemoteHelpScreen() {
     if (!contact) return;
 
     const cleanPhone = contact.phoneNumber.replace(/[^\d]/g, '');
-    const message = `I need help. Open your ElderCare app and join my remote help session with code: ${activeSession.sessionCode}`;
+    const message = `I need help. Open your Setu app and join my remote help session with code: ${activeSession.sessionCode}`;
     const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };

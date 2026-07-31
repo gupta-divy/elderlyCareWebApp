@@ -86,9 +86,9 @@ export function Login() {
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-6 py-12">
       <div className="mb-9 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-teal-700 text-lg font-black text-white shadow-lg">
-          EC
+          S
         </div>
-        <h1 className="mt-4 text-3xl font-bold text-teal-700">ElderCare Connect</h1>
+        <h1 className="mt-4 text-3xl font-bold text-teal-700">Setu</h1>
         <p className="mt-2 text-base text-slate-600">Sign in to your family workspace.</p>
       </div>
 
@@ -153,7 +153,7 @@ export function Login() {
       </form>
 
       <p className="mt-6 text-center text-sm text-slate-600">
-        New to ElderCare?{' '}
+        New to Setu?{' '}
         <Link to="/signup" className="font-bold text-teal-700 underline underline-offset-4">
           Create an account
         </Link>

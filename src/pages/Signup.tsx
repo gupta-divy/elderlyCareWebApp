@@ -228,7 +228,7 @@ export function Signup() {
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col px-5 py-8">
       <div className="mb-6 text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-teal-700 text-base font-black text-white shadow-lg">
-          EC
+          S
         </div>
         <h1 className="mt-4 text-3xl font-bold text-teal-700">
           {isCompletingProfile ? 'Finish family setup' : 'Create your account'}
@@ -236,7 +236,7 @@ export function Signup() {
         <p className="mt-2 text-base text-slate-600">
           {isCompletingProfile
             ? 'Choose how this account connects to a family.'
-            : 'Start or join an ElderCare family workspace.'}
+            : 'Start or join a Setu family workspace.'}
         </p>
       </div>
 

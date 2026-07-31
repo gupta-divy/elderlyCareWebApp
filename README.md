@@ -1,4 +1,4 @@
-# ElderCare Connect - Web Prototype
+# Setu - Web Prototype
 
 Responsive React + Vite + React Router prototype for families caring for elderly parents.
 

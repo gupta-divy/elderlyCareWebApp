@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'ElderCare Connect',
-        short_name: 'ElderCare',
+        name: 'Setu',
+        short_name: 'Setu',
         description: 'Care for elderly parents from anywhere',
         theme_color: '#0d9488',
         background_color: '#f0fdfa',
