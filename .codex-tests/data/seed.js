@@ -161,8 +161,8 @@ exports.SEED_STATE = {
             assignedParentId: 'parent-1',
             createdByChildId: 'child-1',
             itemType: 'calendar_event',
-            title: 'Doctor appointment',
-            time: '10:00',
+            title: 'Dr. Sharma Appointment',
+            time: '16:00',
             startDate: nextWeek.toISOString().slice(0, 10),
             repeat: 'once',
             ringAlarm: false,
@@ -250,35 +250,6 @@ exports.SEED_STATE = {
             fileType: 'image',
             thumbnailUrl: '/documents/prescription-sheet.svg',
             uploadDate: new Date(Date.now() - 86400000 * 2).toISOString(),
-        },
-    ],
-    emergencyRoutines: [
-        {
-            parentId: 'parent-1',
-            steps: [
-                { order: 1, action: 'notify_child' },
-                {
-                    order: 2,
-                    action: 'call_contact',
-                    contactName: 'Demo neighbor',
-                    contactPhone: '+10000003001',
-                },
-                { order: 3, action: 'call_ambulance' },
-                { order: 4, action: 'share_location' },
-            ],
-        },
-        {
-            parentId: 'parent-2',
-            steps: [
-                { order: 1, action: 'notify_child' },
-                {
-                    order: 2,
-                    action: 'call_contact',
-                    contactName: 'Demo relative',
-                    contactPhone: '+10000003002',
-                },
-                { order: 3, action: 'call_ambulance' },
-            ],
         },
     ],
     remoteSetups: [

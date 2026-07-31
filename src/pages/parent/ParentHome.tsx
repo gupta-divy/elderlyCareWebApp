@@ -5,7 +5,7 @@ import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 import { formatLocalTime, toDateKey } from '../../utils/helpers';
 
 type ParentAction = {
-  id: 'camera' | 'tasks' | 'notes' | 'sos';
+  id: 'camera' | 'tasks' | 'notes' | 'phoneDiary';
   label: string;
   subtitle: string;
   to: string;
@@ -43,13 +43,13 @@ const parentActions: ParentAction[] = [
     surface: 'hover:border-teal-200 active:bg-teal-50',
   },
   {
-    id: 'sos',
-    label: 'SOS',
-    subtitle: 'Emergency help',
-    to: '/parent/emergency',
-    iconTone: 'bg-rose-50 text-rose-700',
-    borderTone: 'border-rose-100',
-    surface: 'hover:border-rose-200 active:bg-rose-50',
+    id: 'phoneDiary',
+    label: 'Phone Diary',
+    subtitle: 'Family numbers',
+    to: '/parent/phone-diary',
+    iconTone: 'bg-violet-50 text-violet-700',
+    borderTone: 'border-violet-100',
+    surface: 'hover:border-violet-200 active:bg-violet-50',
   },
 ];
 
@@ -64,46 +64,44 @@ function ParentActionIcon({ id }: { id: ParentAction['id'] }) {
     'aria-hidden': true,
   };
 
-  if (id === 'camera') {
-    return (
-      <svg viewBox="0 0 24 24" {...common}>
-        <path d="M7 7h2l1.5-2h3L15 7h2a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3Z" />
-        <circle cx="12" cy="13.5" r="3.2" />
-      </svg>
-    );
+  switch (id) {
+    case 'camera':
+      return (
+        <svg viewBox="0 0 24 24" {...common}>
+          <path d="M7 7h2l1.5-2h3L15 7h2a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3Z" />
+          <circle cx="12" cy="13.5" r="3.2" />
+        </svg>
+      );
+    case 'tasks':
+      return (
+        <svg viewBox="0 0 24 24" {...common}>
+          <path d="M8 6h12" />
+          <path d="M8 12h12" />
+          <path d="M8 18h12" />
+          <path d="m3.5 6 1 1 2-2" />
+          <path d="m3.5 12 1 1 2-2" />
+          <path d="m3.5 18 1 1 2-2" />
+        </svg>
+      );
+    case 'notes':
+      return (
+        <svg viewBox="0 0 24 24" {...common}>
+          <path d="M6 4h9l3 3v13H6z" />
+          <path d="M15 4v4h4" />
+          <path d="M9 12h6" />
+          <path d="M9 16h6" />
+        </svg>
+      );
+    case 'phoneDiary':
+      return (
+        <svg viewBox="0 0 24 24" {...common}>
+          <path d="M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+          <path d="M9 9h6" />
+          <path d="M9 13h3" />
+          <path d="M16 3v18" />
+        </svg>
+      );
   }
-
-  if (id === 'tasks') {
-    return (
-      <svg viewBox="0 0 24 24" {...common}>
-        <path d="M8 6h12" />
-        <path d="M8 12h12" />
-        <path d="M8 18h12" />
-        <path d="m3.5 6 1 1 2-2" />
-        <path d="m3.5 12 1 1 2-2" />
-        <path d="m3.5 18 1 1 2-2" />
-      </svg>
-    );
-  }
-
-  if (id === 'notes') {
-    return (
-      <svg viewBox="0 0 24 24" {...common}>
-        <path d="M6 4h9l3 3v13H6z" />
-        <path d="M15 4v4h4" />
-        <path d="M9 12h6" />
-        <path d="M9 16h6" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg viewBox="0 0 24 24" {...common}>
-      <path d="M12 3 3.8 6v5.8c0 5 3.4 7.8 8.2 9.2 4.8-1.4 8.2-4.2 8.2-9.2V6z" />
-      <path d="M12 8v5" />
-      <path d="M12 17h.01" />
-    </svg>
-  );
 }
 
 function getGreeting(now = new Date()) {

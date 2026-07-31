@@ -28,7 +28,7 @@ function scheduleBrowserAlarm(record, title) {
     if (msUntilFire < 0)
         return;
     const timeoutId = window.setTimeout(() => {
-        const notification = new Notification('ElderCare Reminder', {
+        const notification = new Notification('Setu Reminder', {
             body: title,
             tag: record.id,
             requireInteraction: true,

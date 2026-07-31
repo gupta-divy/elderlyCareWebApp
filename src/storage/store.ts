@@ -3,7 +3,6 @@ import { SEED_STATE } from '../data/seed';
 import type {
   AppState,
   Document,
-  EmergencyRoutine,
   ParentProfile,
   RemoteHelpSession,
   RemoteSetupState,
@@ -38,7 +37,6 @@ type LegacyAppState = {
   parents?: ParentProfile[];
   tasks?: LegacyTask[];
   documents?: Array<Document & { parentId?: string }>;
-  emergencyRoutines?: EmergencyRoutine[];
   remoteSetups?: Array<RemoteSetupState & { parentId?: string; trustedContacts?: Array<TrustedRemoteContact & { parentId?: string }> }>;
   remoteHelpSessions?: Array<RemoteHelpSession & { parentId?: string }>;
   currentUserId?: string | null;
@@ -174,7 +172,6 @@ function normalizeState(raw: unknown): AppState {
         ? (parsed as Partial<AppState>).taskAlarmRecords
         : []) as TaskAlarmRecord[],
     documents: parsed.documents ?? seed.documents,
-    emergencyRoutines: parsed.emergencyRoutines ?? seed.emergencyRoutines,
     remoteSetups: normalizedRemoteSetups,
     remoteHelpSessions: normalizedRemoteHelpSessions,
     currentUserId,

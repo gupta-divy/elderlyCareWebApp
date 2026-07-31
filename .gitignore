@@ -3,3 +3,7 @@ dist
 dist-ssr
 *.local
 .DS_Store
+
+# Capacitor native projects are maintained on a separate branch.
+android/
+ios/

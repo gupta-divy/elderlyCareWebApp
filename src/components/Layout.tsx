@@ -10,7 +10,6 @@ const childNav: NavItem[] = [
   { to: '/child', label: 'Home', icon: 'H' },
   { to: '/child/tasks', label: 'Tasks', icon: 'T' },
   { to: '/child/notes', label: 'Notes', icon: 'N' },
-  { to: '/child/settings', label: 'Setup', icon: 'S' },
 ];
 
 export function Layout() {
@@ -143,7 +142,7 @@ export function Layout() {
           className="app-shell fixed bottom-0 left-0 right-0 z-10 mx-auto border-t border-white/60 bg-white/92 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur safe-area-bottom"
           aria-label="Main navigation"
         >
-          <div className="grid grid-cols-4 gap-0">
+          <div className="grid grid-cols-3 gap-0">
             {childNav.map((item) => (
               <NavLink
                 key={item.to}

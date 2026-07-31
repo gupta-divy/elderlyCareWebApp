@@ -11,16 +11,15 @@ import { AccountSettings } from './pages/AccountSettings';
 import { SharedNotesScreen } from './pages/SharedNotesScreen';
 import { ParentHome } from './pages/parent/ParentHome';
 import { ParentTasks } from './pages/parent/ParentTasks';
-import { ParentEmergency } from './pages/parent/ParentEmergency';
 import { DocumentsScreen } from './pages/parent/DocumentsScreen';
 import { DocumentFolderScreen } from './pages/parent/DocumentFolderScreen';
 import { CreateContactScreen } from './pages/parent/CreateContactScreen';
 import { SendPhotoScreen } from './pages/parent/SendPhotoScreen';
+import { PhoneDiaryScreen } from './pages/parent/PhoneDiaryScreen';
 import { ChildDashboard } from './pages/manager/ManagerDashboard';
 import { ChildTasks } from './pages/manager/ManagerTasks';
 import { ChildDocuments } from './pages/manager/ManagerDocuments';
 import { ChildDocumentFolderScreen } from './pages/manager/ManagerDocumentFolderScreen';
-import { ChildSettings } from './pages/manager/ManagerSettings';
 import { SupabaseTest } from './pages/SupabaseTest';
 
 function ProtectedRoute({
@@ -173,7 +172,7 @@ export default function App() {
         <Route path="account" element={<AccountSettings />} />
         <Route path="tasks" element={<ParentTasks />} />
         <Route path="notes" element={<SharedNotesScreen />} />
-        <Route path="emergency" element={<ParentEmergency />} />
+        <Route path="phone-diary" element={<PhoneDiaryScreen />} />
         <Route path="remote-help" element={<Navigate to="/parent" replace />} />
         <Route path="create-contact" element={<CreateContactScreen />} />
         <Route path="documents" element={<DocumentsScreen />} />
@@ -201,7 +200,6 @@ export default function App() {
         />
         <Route path="remote-support/join" element={<Navigate to="/child" replace />} />
         <Route path="remote-support" element={<Navigate to="/child" replace />} />
-        <Route path="settings" element={<ChildSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
