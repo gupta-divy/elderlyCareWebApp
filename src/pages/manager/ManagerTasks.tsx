@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ParentSwitcher } from '../../components/ParentSwitcher';
 import { useApp } from '../../context/AppContext';
+import { useFeatureFlags } from '../../features/flags/featureFlags';
 import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 import {
   DEFAULT_MISS_NOTIFICATION_THRESHOLD,
@@ -100,6 +101,8 @@ function buildCalendarDays(monthDate: Date) {
 
 export function ChildTasks() {
   const { getLinkedParents, requestAlarmPermission, selectedParent } = useApp();
+  const { isFeatureEnabled } = useFeatureFlags();
+  const calendarEnabled = isFeatureEnabled('calendar');
   const parents = getLinkedParents();
   const {
     activeTasks,
@@ -123,6 +126,18 @@ export function ChildTasks() {
   });
   const [errors, setErrors] = useState<TaskValidationErrors>({});
   const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    if (!calendarEnabled && activeTab === 'calendar') {
+      setActiveTab('status');
+    }
+  }, [activeTab, calendarEnabled]);
+
+  useEffect(() => {
+    if (!calendarEnabled && form.itemType === 'calendar_event') {
+      setItemType('routine_task');
+    }
+  }, [calendarEnabled, form.itemType]);
 
   useEffect(() => {
     if (parents.length === 1 && !form.parentId) {
@@ -281,11 +296,18 @@ export function ChildTasks() {
           onSubmit={handleSubmit}
           className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4"
         >
-          <div className="grid grid-cols-2 rounded-lg bg-slate-100 p-1 text-sm font-semibold">
+          <div
+            className="grid rounded-lg bg-slate-100 p-1 text-sm font-semibold"
+            style={{
+              gridTemplateColumns: calendarEnabled
+                ? 'repeat(2, minmax(0, 1fr))'
+                : 'minmax(0, 1fr)',
+            }}
+          >
             {[
               { label: 'Routine Task', value: 'routine_task' as const },
               { label: 'Calendar Event', value: 'calendar_event' as const },
-            ].map((option) => (
+            ].filter((option) => option.value !== 'calendar_event' || calendarEnabled).map((option) => (
               <button
                 key={option.value}
                 type="button"
@@ -466,12 +488,19 @@ export function ChildTasks() {
         </form>
       ) : null}
 
-      <div className="grid grid-cols-3 rounded-xl bg-slate-100 p-1 text-sm font-semibold">
+      <div
+        className="grid rounded-xl bg-slate-100 p-1 text-sm font-semibold"
+        style={{
+          gridTemplateColumns: calendarEnabled
+            ? 'repeat(3, minmax(0, 1fr))'
+            : 'repeat(2, minmax(0, 1fr))',
+        }}
+      >
         {[
           { key: 'status', label: 'Status' },
           { key: 'routine', label: 'Routine Tasks' },
           { key: 'calendar', label: 'Calendar' },
-        ].map((tab) => (
+        ].filter((tab) => tab.key !== 'calendar' || calendarEnabled).map((tab) => (
           <button
             key={tab.key}
             type="button"

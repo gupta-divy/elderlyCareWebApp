@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useFeatureFlags } from '../../features/flags/featureFlags';
 import { useSharedNote } from '../../features/notes/useSharedNote';
 import {
   buildFamilyUpdates,
@@ -116,6 +117,7 @@ function EmptyUpdates() {
 
 export function ChildDashboard() {
   const app = useApp();
+  const { isFeatureEnabled } = useFeatureFlags();
   const { attentionItems, calendarEvents, loading: tasksLoading } = useCloudTasks();
   const {
     content: sharedNoteContent,
@@ -126,6 +128,9 @@ export function ChildDashboard() {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(() =>
     currentChildId ? readDismissedUpdates(currentChildId) : new Set<string>(),
   );
+  const calendarEnabled = isFeatureEnabled('calendar');
+  const sharedNotesEnabled = isFeatureEnabled('sharedNotes');
+  const remoteSupportEnabled = isFeatureEnabled('remoteSupport');
 
   useEffect(() => {
     setDismissedIds(currentChildId ? readDismissedUpdates(currentChildId) : new Set<string>());
@@ -143,20 +148,23 @@ export function ChildDashboard() {
     () =>
       buildFamilyUpdates({
         attentionItems,
-        calendarEvents,
+        calendarEvents: calendarEnabled ? calendarEvents : [],
         currentChildId,
         parentNames,
-        remoteHelpSessions: app.state.remoteHelpSessions,
-        sharedNoteHasContent: sharedNoteContent.trim().length > 0,
-        sharedNoteUpdatedAt,
+        remoteHelpSessions: remoteSupportEnabled ? app.state.remoteHelpSessions : [],
+        sharedNoteHasContent: sharedNotesEnabled && sharedNoteContent.trim().length > 0,
+        sharedNoteUpdatedAt: sharedNotesEnabled ? sharedNoteUpdatedAt : null,
       }).filter((update) => !dismissedIds.has(update.id)),
     [
       app.state.remoteHelpSessions,
       attentionItems,
+      calendarEnabled,
       calendarEvents,
       currentChildId,
       dismissedIds,
       parentNames,
+      remoteSupportEnabled,
+      sharedNotesEnabled,
       sharedNoteContent,
       sharedNoteUpdatedAt,
     ],

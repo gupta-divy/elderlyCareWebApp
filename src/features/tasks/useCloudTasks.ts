@@ -76,14 +76,16 @@ function toDemoTaskRow(task: TaskTemplate): TaskRow {
 function toDemoCompletionRow(
   occurrence: TaskOccurrence,
   familyId: string,
-): TaskCompletionRow {
+): TaskCompletionRow | null {
+  if (occurrence.status === 'pending') return null;
+
   return {
     id: occurrence.id,
     task_id: occurrence.taskId,
     family_id: familyId,
     completed_by: occurrence.completedBy ?? occurrence.assignedParentId,
     scheduled_for: occurrence.scheduledFor,
-    status: occurrence.status === 'done' ? 'completed' : occurrence.status,
+    status: occurrence.status === 'done' ? 'completed' : 'missed',
     completed_at: occurrence.completedAt ?? null,
     photo_path: occurrence.proofUrl ?? null,
     created_at: occurrence.createdAt,
@@ -152,7 +154,7 @@ export function useCloudTasks(parentId?: string | null) {
       app.isDemoMode
         ? app.state.taskOccurrences.map((occurrence) =>
             toDemoCompletionRow(occurrence, familyId ?? 'family-demo'),
-          )
+          ).filter((completion): completion is TaskCompletionRow => Boolean(completion))
         : completions,
     [app.isDemoMode, app.state.taskOccurrences, completions, familyId],
   );
@@ -213,7 +215,7 @@ export function useCloudTasks(parentId?: string | null) {
           selectedWeekdays: input.repeatDays ?? [],
           ringAlarm: input.requiresAlarm,
           requiresPhoto: false,
-          missNotificationThreshold: input.missNotificationThreshold,
+          missNotificationThreshold: input.missNotificationThreshold ?? 3,
           eventTimezone: input.eventTimezone,
         }, input.taskId);
         return;

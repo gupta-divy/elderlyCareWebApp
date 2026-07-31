@@ -2,13 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requestAlarmPermission = requestAlarmPermission;
 exports.syncTaskAlarmRuntime = syncTaskAlarmRuntime;
+const platform_1 = require("../../platform");
 const runtimeTimers = new Map();
 async function requestAlarmPermission() {
-    if (typeof Notification === 'undefined')
-        return 'unsupported';
-    if (Notification.permission === 'granted')
-        return 'granted';
-    return Notification.requestPermission();
+    return platform_1.platformServices.notifications.requestPermission();
 }
 function clearRuntimeTimer(alarmId) {
     const entry = runtimeTimers.get(alarmId);
@@ -28,14 +25,15 @@ function scheduleBrowserAlarm(record, title) {
     if (msUntilFire < 0)
         return;
     const timeoutId = window.setTimeout(() => {
-        const notification = new Notification('ElderCare Reminder', {
+        const notification = new Notification('Setu Reminder', {
             body: title,
             tag: record.id,
             requireInteraction: true,
         });
         notification.onclick = () => {
             window.focus();
-            window.location.hash = '#/parent/tasks';
+            window.history.pushState(null, '', '/parent/tasks');
+            window.dispatchEvent(new PopStateEvent('popstate'));
         };
         runtimeTimers.set(record.id, { timeoutId, notification });
     }, msUntilFire);

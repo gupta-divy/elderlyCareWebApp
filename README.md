@@ -1,17 +1,46 @@
-# Setu - Web Prototype
+# Setu
 
-Responsive React + Vite + React Router prototype for families caring for elderly parents.
+Setu is a shared React + Vite app for families caring for elderly parents. The same React codebase now runs as:
+
+- Web/PWA
+- Android through Capacitor
+- iOS through Capacitor
+
+The app is not rewritten in React Native, Flutter, Kotlin, Swift, or Ionic UI components. Supabase remains the backend for authentication, family onboarding, shared notes, tasks, calendar events, and document storage.
 
 ## Stack
 
 - React 19 + TypeScript + Vite
 - React Router
 - Tailwind CSS v4
-- Supabase Auth and Postgres RPC onboarding
-- localStorage persistence for the existing prototype task/document/demo data
-- vite-plugin-pwa
+- Supabase Auth, Postgres, Storage, and RLS
+- Capacitor Android and iOS native shells
+- vite-plugin-pwa for the web version
 
-## Quick start
+## Environment Variables
+
+Create `.env.local` with Vite-prefixed browser values:
+
+```bash
+VITE_SUPABASE_URL=your-supabase-project-url
+VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+```
+
+Never put the Supabase service-role key in this frontend app.
+
+Optional local configuration:
+
+| Variable | Default |
+| --- | --- |
+| `VITE_ELDERCARE_STORAGE_KEY` | `eldercare-connect-state` |
+| `VITE_FEATURE_DOCUMENTS` | `false` |
+| `VITE_FEATURE_SHARED_NOTES` | `true` |
+| `VITE_FEATURE_CALENDAR` | `true` |
+| `VITE_FEATURE_REMOTE_SUPPORT` | `false` |
+
+Feature flags accept values such as `true`, `false`, `1`, `0`, `enabled`, or `disabled`. Disabled features are hidden from navigation and guarded from direct route access, while their code remains in the repo for later enablement.
+
+## Web Development
 
 ```bash
 npm install
@@ -20,141 +49,175 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-## Environment variables
-
-Create `.env.local` with the Supabase browser values:
+Production web build:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+npm run build
+npm run preview
 ```
 
-The Vite config exposes `NEXT_PUBLIC_` variables through `envPrefix`. Do not put a Supabase service-role key in this app.
+## Windows Setup
 
-Optional local storage keys:
+Windows can build the React app, sync Capacitor assets, run Android, and open Android Studio.
 
-| Variable | Default |
-|---------|---------|
-| `VITE_ELDERCARE_STORAGE_KEY` | `eldercare-connect-state` |
+Install:
 
-## Supabase Auth configuration
+- Node.js LTS
+- Android Studio
+- Android SDK Platform and Build Tools
+- JDK version required by the installed Android Gradle Plugin
+
+Confirm Android tooling is available through Android Studio or environment variables such as `ANDROID_HOME`.
+
+## Android Commands
+
+Build and sync all native platforms:
+
+```bash
+npm run cap:sync
+```
+
+Build and sync Android only:
+
+```bash
+npm run cap:sync:android
+```
+
+Open Android Studio:
+
+```bash
+npm run cap:open:android
+```
+
+Run Android on a connected emulator or device:
+
+```bash
+npm run cap:run:android
+```
+
+## macOS and Xcode Setup
+
+iOS native builds require macOS with:
+
+- Xcode
+- Xcode Command Line Tools
+- An Apple Developer account for physical devices or distribution
+
+Windows can generate and sync the iOS project files, but building, running, signing, and archiving iOS must happen on macOS.
+
+## iOS Commands
+
+Build and sync iOS:
+
+```bash
+npm run cap:sync:ios
+```
+
+Open Xcode:
+
+```bash
+npm run cap:open:ios
+```
+
+Run the app from Xcode on an iOS simulator or device after sync. Production signing and App Store publishing are intentionally not configured yet.
+
+## Workflow After React Changes
+
+1. Make React, CSS, service, or Supabase client changes under `src/`.
+2. Run `npm run build`.
+3. Run `npm run cap:sync` to copy the latest `dist` output into Android and iOS.
+4. Open or run the native platform you need.
+
+For Android-only changes, `npm run cap:sync:android` is faster. For iOS-only changes, use `npm run cap:sync:ios` on macOS.
+
+## Supabase Auth Configuration
 
 In the Supabase dashboard:
 
 1. Go to Authentication -> Providers -> Email.
 2. Enable Email/Password signups.
-3. For local development, set Site URL to `http://localhost:5173`.
+3. For local web development, set Site URL to `http://localhost:5173`.
 4. Add redirect URLs:
    - `http://localhost:5173/*`
    - your deployed Vite app URL, for example `https://your-app.vercel.app/*`
-5. Email confirmation may be enabled or disabled:
-   - Disabled: signup returns a session and family onboarding runs immediately.
-   - Enabled: signup creates the Auth user without a session; the app asks the user to confirm email, then sign in and finish family setup.
+5. For native deep links, reserve the `setu://` URL scheme. Add native callback URLs when OAuth or passwordless flows are introduced.
 
-## Database migration
+Supabase Row Level Security remains independent from UI visibility. Feature flags only control client navigation and route access.
 
-Run the SQL migration in:
+## Database Migration
 
-```text
-supabase/migrations/20260713000100_auth_family_onboarding.sql
-```
-
-You can apply it with Supabase CLI:
+Apply the migrations under `supabase/migrations/` with Supabase CLI:
 
 ```bash
 supabase db push
 ```
 
-Or paste the migration into the Supabase SQL editor for the project.
+Or paste the SQL into the Supabase SQL editor for the project.
 
-The migration creates:
+The migrations cover family onboarding, RLS hardening, tasks, calendar events, shared notes, and documents.
 
-- `profiles`: app profile source of truth for full name, role, email, WhatsApp number, and `whatsapp_verified = false`.
-- `families`: family workspace records with unique readable codes like `FAM-7K4P9Q`.
-- `family_members`: source of truth for family membership, separate from `profiles`.
-- RLS policies so users only read their own profile, same-family profiles, their families, and memberships for families they belong to.
-- Authenticated RPC functions:
-  - `create_family_and_profile`
-  - `join_family_and_create_profile`
+## Preserved Features
 
-Because this is a client-side Vite app, sensitive multi-table onboarding is handled by authenticated Postgres RPC functions instead of browser-side sequential inserts. The functions use `auth.uid()`, do not accept arbitrary user IDs, generate family codes in PostgreSQL, and are idempotent where practical.
+These features use the shared React web code across Web, Android, and iOS:
 
-## Auth routes
+- Supabase authentication
+- Family onboarding
+- Demo parent and child modes
+- Parent UI
+- Child UI
+- Tasks
+- Calendar events when `VITE_FEATURE_CALENDAR=true`
+- Shared Notes when `VITE_FEATURE_SHARED_NOTES=true`
+- Documents module code and services, guarded by `VITE_FEATURE_DOCUMENTS`
+- Storage logic and feature-specific services
+- Hidden remote support infrastructure, guarded by `VITE_FEATURE_REMOTE_SUPPORT`
 
-- `/login`: email/password sign in.
-- `/signup`: create account and complete family onboarding.
-- `/supabase-test`: temporary Supabase connection check.
-- `/account-test`: development-only protected account panel with session/profile/family details and logout.
+## Native Capability Status
 
-Existing authenticated home routes are preserved:
+Prepared abstractions exist for:
 
-- Parent users land on `/parent`.
-- Child users land on `/child`.
+- Notifications
+- Camera
+- File Picker
+- File Sharing
+- Permissions
+- Deep Links
 
-## Create-family testing
+Implemented now:
 
-1. Start the app with `npm run dev`.
-2. Visit `http://localhost:5173/signup`.
-3. Select `Create a New Family`.
-4. Enter full name, role, email, WhatsApp number, password, and confirm password.
-5. Submit the form.
-6. If email confirmation is disabled, the app creates the profile, family, and membership, then displays the generated Family ID.
-7. Keep the Family ID for join-family testing.
+- Capacitor Android and iOS shells
+- Android hardware back-button handling through `@capacitor/app`
+- Native deep-link URL scheme metadata for `setu://`
+- Keyboard resize handling through `@capacitor/keyboard`
+- Safe-area CSS for notches, home indicator, cutouts, and gesture navigation
 
-## Join-family testing
+Future native plugins or native work will be needed for:
 
-1. Log out from the header account menu or `/account-test`.
-2. Visit `/signup`.
-3. Select `Join a Family`.
-4. Enter a Family ID such as `FAM-7K4P9Q`; the app uppercases and trims it.
-5. Create the child or parent account.
-6. If the code exists, the RPC creates the profile and membership.
-7. If the code does not exist, the app shows a friendly Family ID error.
+- Push notifications
+- Native camera capture
+- Native file picker
+- Native file sharing beyond Web Share support
+- Production signing
+- Google Play publishing
+- App Store publishing
 
-## Login/logout testing
+## Browser-only Differences on Mobile
 
-1. Visit `/login`.
-2. Sign in with an existing Supabase email/password account.
-3. Confirm parent accounts land on `/parent` and child accounts land on `/child`.
-4. Refresh the browser and confirm the session persists.
-5. Visit `/parent` or `/child` while logged out and confirm redirect to `/login`.
-6. Use Logout and confirm protected content is no longer accessible.
+Some existing browser APIs may behave differently inside Android and iOS WebViews:
 
-## WhatsApp numbers
+- Camera access currently uses `navigator.mediaDevices.getUserMedia`; native Camera plugin integration is not implemented yet.
+- Web Share support depends on the OS WebView.
+- Browser notifications are not a replacement for native push notifications.
+- Clipboard, geolocation, and tel links depend on device permissions and OS policy.
+- PWA install behavior only applies to the web version, not the Capacitor shells.
 
-Signup uses a country selector plus local number field and normalizes to E.164 before storage, for example:
-
-- `+919876543210`
-- `+16175551234`
-- `+447700900123`
-
-WhatsApp numbers are profile information only. The app does not send OTPs, call Twilio, use the WhatsApp API, or verify phone ownership. New profiles store `whatsapp_verified = false`.
-
-## Build and checks
+## Build and Checks
 
 ```bash
-cmd /c npx.cmd tsc -p tsconfig.app.json --noEmit
+npx tsc -p tsconfig.app.json --noEmit
 npm run build
+npm run test
+npm run cap:sync
 ```
 
-On Windows PowerShell, `npm.cmd` may be needed if script execution blocks `npm`.
-
-## Prototype notes
-
-- This is not a Next.js app; there are no Next.js route handlers, middleware, server actions, or service-role credentials.
-- Supabase Auth manages credentials. Passwords are never stored in app tables or localStorage.
-- The existing task/document/demo screens still use local prototype storage.
-- Supabase profile role determines the default parent/child landing route.
-- If Auth signup succeeds but onboarding fails, the signed-in user is sent back to `/signup` to retry family setup safely.
-
-## Deploy to Vercel
-
-Use the Vite framework preset.
-
-| Setting | Value |
-|---------|-------|
-| Install command | `npm install` |
-| Build command | `npm run build` |
-| Output directory | `dist` |
-
-The included `vercel.json` rewrites client-side routes to `index.html` so refreshing `/login`, `/signup`, `/parent`, `/child/tasks`, and other React Router pages works in production.
+On Windows PowerShell, use `npm.cmd` or `npx.cmd` if script execution blocks `npm` or `npx`.

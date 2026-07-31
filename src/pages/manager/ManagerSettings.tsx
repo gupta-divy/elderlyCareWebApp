@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ParentSwitcher } from '../../components/ParentSwitcher';
 import { useApp } from '../../context/AppContext';
 import type { EmergencyStep } from '../../types';

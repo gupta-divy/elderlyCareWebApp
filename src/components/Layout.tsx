@@ -3,13 +3,14 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFamily } from '../contexts/FamilyContext';
+import { useFeatureFlags, type FeatureKey } from '../features/flags/featureFlags';
 
-type NavItem = { to: string; label: string; icon: string };
+type NavItem = { to: string; label: string; icon: string; feature?: FeatureKey };
 
 const childNav: NavItem[] = [
   { to: '/child', label: 'Home', icon: 'H' },
   { to: '/child/tasks', label: 'Tasks', icon: 'T' },
-  { to: '/child/notes', label: 'Notes', icon: 'N' },
+  { to: '/child/notes', label: 'Notes', icon: 'N', feature: 'sharedNotes' },
   { to: '/child/settings', label: 'Setup', icon: 'S' },
 ];
 
@@ -17,12 +18,14 @@ export function Layout() {
   const { currentUser, exitDemo, isDemoMode } = useApp();
   const { signOut } = useAuth();
   const { role } = useFamily();
+  const { isFeatureEnabled } = useFeatureFlags();
   const navigate = useNavigate();
   const location = useLocation();
   const isParent = (role ?? currentUser?.role) === 'parent';
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const accountPath = isParent ? '/parent/account' : '/child/account';
   const showParentHomeButton = isParent && location.pathname !== '/parent';
+  const visibleChildNav = childNav.filter((item) => !item.feature || isFeatureEnabled(item.feature));
 
   return (
     <div className="app-shell mx-auto flex min-h-dvh flex-col bg-white/50 backdrop-blur-[2px]">
@@ -143,8 +146,11 @@ export function Layout() {
           className="app-shell fixed bottom-0 left-0 right-0 z-10 mx-auto border-t border-white/60 bg-white/92 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur safe-area-bottom"
           aria-label="Main navigation"
         >
-          <div className="grid grid-cols-4 gap-0">
-            {childNav.map((item) => (
+          <div
+            className="grid gap-0"
+            style={{ gridTemplateColumns: `repeat(${visibleChildNav.length}, minmax(0, 1fr))` }}
+          >
+            {visibleChildNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

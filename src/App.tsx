@@ -1,27 +1,88 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useApp } from './context/AppContext';
 import { useAuth } from './contexts/AuthContext';
 import { useFamily } from './contexts/FamilyContext';
+import { useFeatureFlags, type FeatureKey } from './features/flags/featureFlags';
+import { useNativeAppShell } from './platform/useNativeAppShell';
 import { getHomeRoute } from './lib/auth/routes';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { AccountTest } from './pages/AccountTest';
 import { AccountSettings } from './pages/AccountSettings';
-import { SharedNotesScreen } from './pages/SharedNotesScreen';
 import { ParentHome } from './pages/parent/ParentHome';
 import { ParentTasks } from './pages/parent/ParentTasks';
 import { ParentEmergency } from './pages/parent/ParentEmergency';
-import { DocumentsScreen } from './pages/parent/DocumentsScreen';
-import { DocumentFolderScreen } from './pages/parent/DocumentFolderScreen';
 import { CreateContactScreen } from './pages/parent/CreateContactScreen';
 import { SendPhotoScreen } from './pages/parent/SendPhotoScreen';
 import { ChildDashboard } from './pages/manager/ManagerDashboard';
 import { ChildTasks } from './pages/manager/ManagerTasks';
-import { ChildDocuments } from './pages/manager/ManagerDocuments';
-import { ChildDocumentFolderScreen } from './pages/manager/ManagerDocumentFolderScreen';
 import { ChildSettings } from './pages/manager/ManagerSettings';
 import { SupabaseTest } from './pages/SupabaseTest';
+
+const SharedNotesScreen = lazy(() =>
+  import('./pages/SharedNotesScreen').then((module) => ({ default: module.SharedNotesScreen })),
+);
+const DocumentsScreen = lazy(() =>
+  import('./pages/parent/DocumentsScreen').then((module) => ({ default: module.DocumentsScreen })),
+);
+const DocumentFolderScreen = lazy(() =>
+  import('./pages/parent/DocumentFolderScreen').then((module) => ({ default: module.DocumentFolderScreen })),
+);
+const ChildDocuments = lazy(() =>
+  import('./pages/manager/ManagerDocuments').then((module) => ({ default: module.ChildDocuments })),
+);
+const ChildDocumentFolderScreen = lazy(() =>
+  import('./pages/manager/ManagerDocumentFolderScreen').then((module) => ({
+    default: module.ChildDocumentFolderScreen,
+  })),
+);
+const ParentRemoteHelpScreen = lazy(() =>
+  import('./pages/parent/ParentRemoteHelpScreen').then((module) => ({
+    default: module.ParentRemoteHelpScreen,
+  })),
+);
+const ChildRemoteSupportScreen = lazy(() =>
+  import('./pages/manager/ChildRemoteSupportScreen').then((module) => ({
+    default: module.ChildRemoteSupportScreen,
+  })),
+);
+const ChildJoinScreenShareScreen = lazy(() =>
+  import('./pages/manager/ChildJoinScreenShareScreen').then((module) => ({
+    default: module.ChildJoinScreenShareScreen,
+  })),
+);
+
+function LoadingScreen() {
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-lg items-center justify-center px-6 text-center text-slate-600">
+      Loading...
+    </main>
+  );
+}
+
+function LazyScreen({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<LoadingScreen />}>{children}</Suspense>;
+}
+
+function FeatureRoute({
+  children,
+  feature,
+  redirectTo,
+}: {
+  children: React.ReactNode;
+  feature: FeatureKey;
+  redirectTo: string;
+}) {
+  const { isFeatureEnabled } = useFeatureFlags();
+
+  if (!isFeatureEnabled(feature)) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  return <LazyScreen>{children}</LazyScreen>;
+}
 
 function ProtectedRoute({
   children,
@@ -44,19 +105,11 @@ function ProtectedRoute({
   } = useFamily();
 
   if (!isHydrated || authLoading || familyLoading) {
-    return (
-      <main className="mx-auto flex min-h-dvh max-w-lg items-center justify-center px-6 text-center text-slate-600">
-        Loading...
-      </main>
-    );
+    return <LoadingScreen />;
   }
 
   if (isDemoMode && (!profile || !currentMembership || !currentRole)) {
-    return (
-      <main className="mx-auto flex min-h-dvh max-w-lg items-center justify-center px-6 text-center text-slate-600">
-        Loading...
-      </main>
-    );
+    return <LoadingScreen />;
   }
 
   if (!user && !isDemoMode) {
@@ -110,6 +163,8 @@ function ProtectedRoute({
 }
 
 export default function App() {
+  useNativeAppShell();
+
   const { isDemoMode, isHydrated } = useApp();
   const { loading: authLoading, user } = useAuth();
   const { loading: familyLoading, profile, currentMembership, role } = useFamily();
@@ -124,9 +179,7 @@ export default function App() {
         path="/"
         element={
           !isHydrated || loading ? (
-            <main className="mx-auto flex min-h-dvh max-w-lg items-center justify-center px-6 text-center text-slate-600">
-              Loading...
-            </main>
+            <LoadingScreen />
           ) : (user || isDemoMode) && profile && currentMembership ? (
             <Navigate to={getHomeRoute(role)} replace />
           ) : user ? (
@@ -172,14 +225,39 @@ export default function App() {
         <Route index element={<ParentHome />} />
         <Route path="account" element={<AccountSettings />} />
         <Route path="tasks" element={<ParentTasks />} />
-        <Route path="notes" element={<SharedNotesScreen />} />
+        <Route
+          path="notes"
+          element={
+            <FeatureRoute feature="sharedNotes" redirectTo="/parent">
+              <SharedNotesScreen />
+            </FeatureRoute>
+          }
+        />
         <Route path="emergency" element={<ParentEmergency />} />
-        <Route path="remote-help" element={<Navigate to="/parent" replace />} />
+        <Route
+          path="remote-help"
+          element={
+            <FeatureRoute feature="remoteSupport" redirectTo="/parent">
+              <ParentRemoteHelpScreen />
+            </FeatureRoute>
+          }
+        />
         <Route path="create-contact" element={<CreateContactScreen />} />
-        <Route path="documents" element={<DocumentsScreen />} />
+        <Route
+          path="documents"
+          element={
+            <FeatureRoute feature="documents" redirectTo="/parent">
+              <DocumentsScreen />
+            </FeatureRoute>
+          }
+        />
         <Route
           path="documents/:categoryId"
-          element={<DocumentFolderScreen />}
+          element={
+            <FeatureRoute feature="documents" redirectTo="/parent">
+              <DocumentFolderScreen />
+            </FeatureRoute>
+          }
         />
       </Route>
       <Route
@@ -193,14 +271,46 @@ export default function App() {
         <Route index element={<ChildDashboard />} />
         <Route path="account" element={<AccountSettings />} />
         <Route path="tasks" element={<ChildTasks />} />
-        <Route path="notes" element={<SharedNotesScreen />} />
-        <Route path="documents" element={<ChildDocuments />} />
+        <Route
+          path="notes"
+          element={
+            <FeatureRoute feature="sharedNotes" redirectTo="/child">
+              <SharedNotesScreen />
+            </FeatureRoute>
+          }
+        />
+        <Route
+          path="documents"
+          element={
+            <FeatureRoute feature="documents" redirectTo="/child">
+              <ChildDocuments />
+            </FeatureRoute>
+          }
+        />
         <Route
           path="documents/:categoryId"
-          element={<ChildDocumentFolderScreen />}
+          element={
+            <FeatureRoute feature="documents" redirectTo="/child">
+              <ChildDocumentFolderScreen />
+            </FeatureRoute>
+          }
         />
-        <Route path="remote-support/join" element={<Navigate to="/child" replace />} />
-        <Route path="remote-support" element={<Navigate to="/child" replace />} />
+        <Route
+          path="remote-support/join"
+          element={
+            <FeatureRoute feature="remoteSupport" redirectTo="/child">
+              <ChildJoinScreenShareScreen />
+            </FeatureRoute>
+          }
+        />
+        <Route
+          path="remote-support"
+          element={
+            <FeatureRoute feature="remoteSupport" redirectTo="/child">
+              <ChildRemoteSupportScreen />
+            </FeatureRoute>
+          }
+        />
         <Route path="settings" element={<ChildSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

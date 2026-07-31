@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useFeatureFlags, type FeatureKey } from '../../features/flags/featureFlags';
 import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 import { formatLocalTime, toDateKey } from '../../utils/helpers';
 
@@ -12,6 +13,7 @@ type ParentAction = {
   iconTone: string;
   borderTone: string;
   surface: string;
+  feature?: FeatureKey;
 };
 
 const parentActions: ParentAction[] = [
@@ -41,6 +43,7 @@ const parentActions: ParentAction[] = [
     iconTone: 'bg-teal-50 text-teal-700',
     borderTone: 'border-teal-100',
     surface: 'hover:border-teal-200 active:bg-teal-50',
+    feature: 'sharedNotes',
   },
   {
     id: 'sos',
@@ -115,9 +118,11 @@ function getGreeting(now = new Date()) {
 
 export function ParentHome() {
   const { isDemoMode, selectedParent } = useApp();
+  const { isFeatureEnabled } = useFeatureFlags();
   const navigate = useNavigate();
   const parent = selectedParent;
   const { calendarEvents } = useCloudTasks(parent?.id);
+  const calendarEnabled = isFeatureEnabled('calendar');
   const todayKey = toDateKey();
   const todayReminder = useMemo(() => {
     const now = new Date();
@@ -138,6 +143,7 @@ export function ParentHome() {
     };
   }, [calendarEvents, todayKey]);
   const showGhostReminder = isDemoMode && !todayReminder.event;
+  const visibleActions = parentActions.filter((action) => !action.feature || isFeatureEnabled(action.feature));
 
   if (!parent) return <p>No profile found.</p>;
 
@@ -149,7 +155,7 @@ export function ParentHome() {
         </p>
       </section>
 
-      {todayReminder.event || showGhostReminder ? (
+      {calendarEnabled && (todayReminder.event || showGhostReminder) ? (
         <section
           className={`mb-4 rounded-2xl border px-4 py-3 shadow-[0_8px_18px_rgba(14,116,144,0.08)] ${
             showGhostReminder
@@ -190,7 +196,7 @@ export function ParentHome() {
       ) : null}
 
       <div className="grid grid-cols-2 gap-3.5">
-        {parentActions.map((action) => (
+        {visibleActions.map((action) => (
           <button
             key={action.id}
             type="button"

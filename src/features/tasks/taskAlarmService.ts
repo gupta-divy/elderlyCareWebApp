@@ -1,4 +1,5 @@
 import type { AppState, TaskAlarmRecord } from '../../types';
+import { platformServices } from '../../platform';
 
 type ScheduledTimer = {
   timeoutId: number;
@@ -8,9 +9,7 @@ type ScheduledTimer = {
 const runtimeTimers = new Map<string, ScheduledTimer>();
 
 export async function requestAlarmPermission(): Promise<NotificationPermission | 'unsupported'> {
-  if (typeof Notification === 'undefined') return 'unsupported';
-  if (Notification.permission === 'granted') return 'granted';
-  return Notification.requestPermission();
+  return platformServices.notifications.requestPermission();
 }
 
 function clearRuntimeTimer(alarmId: string) {
@@ -39,7 +38,8 @@ function scheduleBrowserAlarm(record: TaskAlarmRecord, title: string) {
 
     notification.onclick = () => {
       window.focus();
-      window.location.hash = '#/parent/tasks';
+      window.history.pushState(null, '', '/parent/tasks');
+      window.dispatchEvent(new PopStateEvent('popstate'));
     };
 
     runtimeTimers.set(record.id, { timeoutId, notification });

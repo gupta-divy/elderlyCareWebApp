@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { BigButton } from '../../components/BigButton';
 import { useApp } from '../../context/AppContext';
+import { useFeatureFlags } from '../../features/flags/featureFlags';
 import type { CalendarEventView, CloudTaskView } from '../../features/tasks/taskData';
 import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 import { repeatLabel } from '../../features/tasks/taskValidation';
@@ -114,7 +115,9 @@ export function ParentTasks() {
   const {
     selectedParent,
   } = useApp();
+  const { isFeatureEnabled } = useFeatureFlags();
   const parent = selectedParent;
+  const calendarEnabled = isFeatureEnabled('calendar');
   const {
     completeTask,
     calendarEvents,
@@ -164,7 +167,7 @@ export function ParentTasks() {
         <p className="text-center text-slate-500">Loading tasks...</p>
       ) : (
         <>
-          <UpcomingEvents events={calendarEvents} />
+          {calendarEnabled ? <UpcomingEvents events={calendarEvents} /> : null}
           {todayTasks.length === 0 ? (
             <p className="text-center text-slate-500">No routine tasks right now. Rest well!</p>
           ) : (

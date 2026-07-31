@@ -1,3 +1,5 @@
+import { dataUrlToShareFile, platformServices } from '../../platform';
+
 export type PhotoShareResult =
   | { status: 'success' }
   | { status: 'permission_denied'; message: string }
@@ -50,22 +52,8 @@ function normalizeBridgeResult(
   }
 }
 
-function dataUrlToBlob(dataUrl: string): Blob {
-  const [header, base64Payload = ''] = dataUrl.split(',');
-  const mimeMatch = header.match(/data:(.*?);base64/);
-  const mimeType = mimeMatch?.[1] || 'image/jpeg';
-  const binary = atob(base64Payload);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
-  return new Blob([bytes], { type: mimeType });
-}
-
 export function canSharePhoto(): boolean {
-  return Boolean(window.AndroidPhotoShare) || typeof navigator.share === 'function';
+  return Boolean(window.AndroidPhotoShare) || platformServices.fileSharing.canShare();
 }
 
 export async function sharePhotoToWhatsAppPreferred({
@@ -94,12 +82,11 @@ export async function sharePhotoToWhatsAppPreferred({
     }
   }
 
-  if (typeof navigator.share === 'function') {
+  if (platformServices.fileSharing.canShare()) {
     try {
-      const blob = dataUrlToBlob(dataUrl);
-      const file = new File([blob], fileName, { type: mimeType });
+      const file = dataUrlToShareFile({ dataUrl, fileName, mimeType });
 
-      await navigator.share({
+      await platformServices.fileSharing.share({
         title: 'Photo',
         files: [file],
       });
