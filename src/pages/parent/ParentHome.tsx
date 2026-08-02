@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useFeatureFlags, type FeatureKey } from '../../features/flags/featureFlags';
 import { useCloudTasks } from '../../features/tasks/useCloudTasks';
-import { formatLocalTime, toDateKey } from '../../utils/helpers';
+import { toDateKey } from '../../utils/helpers';
+import { formatViewerTime } from '../../utils/timezones';
 
 type ParentAction = {
   id: 'camera' | 'tasks' | 'notes' | 'phoneDiary';
@@ -187,7 +188,7 @@ export function ParentHome() {
                 }`}
               >
                 {todayReminder.event
-                  ? `${todayReminder.event.title} • ${formatLocalTime(todayReminder.event.time)}`
+                  ? `${todayReminder.event.title} • ${formatViewerTime(todayReminder.event.scheduledFor)}`
                   : 'Dr. Sharma Appointment • 4:00 PM'}
               </p>
             </div>

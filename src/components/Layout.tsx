@@ -27,8 +27,8 @@ export function Layout() {
   const visibleChildNav = childNav.filter((item) => !item.feature || isFeatureEnabled(item.feature));
 
   return (
-    <div className="app-shell mx-auto flex min-h-dvh flex-col bg-white/50 backdrop-blur-[2px]">
-      <header className="sticky top-0 z-10 border-b border-white/35 bg-linear-to-r from-teal-700 via-teal-600 to-cyan-600 px-4 py-3 text-white shadow-lg safe-area-top">
+    <div className="app-shell mx-auto flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-white/50 backdrop-blur-[2px]">
+      <header className="z-10 flex-none border-b border-white/35 bg-linear-to-r from-teal-700 via-teal-600 to-cyan-600 px-4 py-3 text-white shadow-lg safe-area-top">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <button
@@ -133,8 +133,8 @@ export function Layout() {
       </header>
 
       <main
-        className={`min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 ${
-          isParent ? 'pb-6' : 'pb-28'
+        className={`min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-4 ${
+          isParent ? 'pb-6' : 'pb-8'
         }`}
       >
         <Outlet />
@@ -142,7 +142,7 @@ export function Layout() {
 
       {!isParent ? (
         <nav
-          className="app-shell fixed bottom-0 left-0 right-0 z-10 mx-auto border-t border-white/60 bg-white/92 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur safe-area-bottom"
+          className="keyboard-aware-nav z-10 flex-none border-t border-white/60 bg-white/92 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur safe-area-bottom"
           aria-label="Main navigation"
         >
           <div

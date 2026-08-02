@@ -13,6 +13,8 @@ export type ParentProfile = {
   id: string;
   name: string;
   city: string;
+  countryCode?: string;
+  timezone?: string;
   age: number;
   stepsData: { date: string; count: number }[];
   lastPhotoUrl: string;

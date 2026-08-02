@@ -7,6 +7,8 @@ export type Profile = {
   role: FamilyRole;
   whatsappNumber: string | null;
   whatsappVerified: boolean;
+  countryCode?: string | null;
+  timezone?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };

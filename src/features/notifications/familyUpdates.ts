@@ -1,5 +1,5 @@
 import type { RemoteHelpSession } from '../../types';
-import { formatLocalTime } from '../../utils/helpers';
+import { formatViewerTime } from '../../utils/timezones';
 import type { CalendarEventView, RoutineAttentionItem } from '../tasks/taskData';
 
 export type FamilyUpdateType =
@@ -112,7 +112,7 @@ export function buildFamilyUpdates(input: FamilyUpdateInput): FamilyUpdate[] {
       parentId: event.parentId,
       parentName: name,
       title: 'Calendar reminder',
-      description: `${name} has ${event.title} ${formatRelativeEventDate(event.scheduledFor, now)} at ${formatLocalTime(event.time)}.`,
+      description: `${name} has ${event.title} ${formatRelativeEventDate(event.scheduledFor, now)} at ${formatViewerTime(event.scheduledFor)}.`,
       timestamp: event.updatedAt,
       action: {
         label: 'View Event',

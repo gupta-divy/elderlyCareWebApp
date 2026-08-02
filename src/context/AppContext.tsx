@@ -36,6 +36,7 @@ import type {
 import { localBackend } from '../storage/store';
 import { SEED_STATE } from '../data/seed';
 import { generateId } from '../utils/helpers';
+import { getLocalTimezone } from '../utils/timezones';
 
 export type AuthenticatedFamilyProfile = {
   id: string;
@@ -43,6 +44,8 @@ export type AuthenticatedFamilyProfile = {
   email: string;
   role: 'child' | 'parent';
   whatsappNumber: string | null;
+  countryCode?: string | null;
+  timezone?: string | null;
 };
 
 export type AuthenticatedProfileSync = AuthenticatedFamilyProfile & {
@@ -258,6 +261,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         email: profile.email,
         role: profile.role,
         whatsappNumber: profile.whatsappNumber,
+        countryCode: profile.countryCode,
+        timezone: profile.timezone,
       });
 
       const familyProfiles = [...familyProfilesById.values()];
@@ -293,6 +298,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           id: familyProfile.id,
           name: familyProfile.fullName,
           city: existingParent?.city ?? 'Family workspace',
+          countryCode: familyProfile.countryCode ?? existingParent?.countryCode,
+          timezone: familyProfile.timezone ?? existingParent?.timezone ?? getLocalTimezone(),
           age: existingParent?.age ?? 0,
           stepsData: existingParent?.stepsData ?? emptyStepsData(),
           lastPhotoUrl: existingParent?.lastPhotoUrl ?? '',

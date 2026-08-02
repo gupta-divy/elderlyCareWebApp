@@ -311,7 +311,7 @@ export function saveTaskDefinition(
     attentionActive: itemType === 'routine_task' ? existing?.attentionActive ?? false : false,
     attentionRaisedAt: itemType === 'routine_task' ? existing?.attentionRaisedAt : undefined,
     lastMissedOccurrenceAt: itemType === 'routine_task' ? existing?.lastMissedOccurrenceAt : undefined,
-    eventTimezone: itemType === 'calendar_event' ? input.eventTimezone ?? existing?.eventTimezone ?? getLocalTimezone() : undefined,
+    eventTimezone: input.eventTimezone ?? existing?.eventTimezone ?? getLocalTimezone(),
     eventReminderOneDaySentAt: existing?.eventReminderOneDaySentAt,
     eventReminderTwoHoursSentAt: existing?.eventReminderTwoHoursSentAt,
     isActive: true,

@@ -15,6 +15,8 @@ export type ProfileRow = {
   email: string;
   whatsapp_number: string | null;
   whatsapp_verified: boolean;
+  country_code?: string | null;
+  timezone?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -44,6 +46,8 @@ export function mapProfile(row: ProfileRow): Profile {
     role: row.role,
     whatsappNumber: row.whatsapp_number,
     whatsappVerified: row.whatsapp_verified,
+    countryCode: row.country_code ?? null,
+    timezone: row.timezone ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

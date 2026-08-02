@@ -169,19 +169,29 @@ export function useCloudTasks(parentId?: string | null) {
     [selectedParentTasks],
   );
 
-  const calendarEvents: CalendarEventView[] = useMemo(
-    () => buildCalendarEvents(selectedParentTasks),
-    [selectedParentTasks],
-  );
-
   const parentNames = useMemo(
     () =>
       Object.fromEntries(
         familyMembers
           .filter((member) => member.role === 'parent')
           .map((member) => [member.userId, member.profile.fullName]),
+    ),
+    [familyMembers],
+  );
+
+  const parentTimezones = useMemo(
+    () =>
+      Object.fromEntries(
+        familyMembers
+          .filter((member) => member.role === 'parent' && member.profile.timezone)
+          .map((member) => [member.userId, member.profile.timezone as string]),
       ),
     [familyMembers],
+  );
+
+  const calendarEvents: CalendarEventView[] = useMemo(
+    () => buildCalendarEvents(selectedParentTasks, parentTimezones),
+    [parentTimezones, selectedParentTasks],
   );
 
   const attentionItems: RoutineAttentionItem[] = useMemo(

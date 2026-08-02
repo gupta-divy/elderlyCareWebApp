@@ -13,7 +13,8 @@ import {
   doesTaskOccurOnDate,
   getScheduledForLocalDate,
 } from './taskRecurrence';
-import { formatDate, formatLocalTime, toDateKey } from '../../utils/helpers';
+import { toDateKey } from '../../utils/helpers';
+import { formatViewerDate, formatViewerTime, getLocalTimezone } from '../../utils/timezones';
 
 export type TaskCompletionStatus = 'completed' | 'missed' | 'skipped';
 
@@ -128,7 +129,7 @@ export function mapTaskRow(row: TaskRow): TaskTemplate {
     attentionActive: Boolean(row.attention_active),
     attentionRaisedAt: row.attention_raised_at ?? undefined,
     lastMissedOccurrenceAt: row.last_missed_occurrence_at ?? undefined,
-    eventTimezone: row.event_timezone ?? undefined,
+    eventTimezone: row.event_timezone ?? getLocalTimezone(),
     eventReminderOneDaySentAt: row.event_reminder_one_day_sent_at ?? undefined,
     eventReminderTwoHoursSentAt: row.event_reminder_two_hours_sent_at ?? undefined,
     isActive: row.is_active,
@@ -151,7 +152,7 @@ export function toTaskInsert(draft: TaskDraft) {
     requires_alarm: draft.itemType === 'routine_task' && Boolean(draft.taskTime && draft.requiresAlarm),
     requires_photo: false,
     miss_notification_threshold: draft.itemType === 'calendar_event' ? 0 : draft.missNotificationThreshold ?? 3,
-    event_timezone: draft.itemType === 'calendar_event' ? draft.eventTimezone ?? 'UTC' : null,
+    event_timezone: draft.eventTimezone ?? getLocalTimezone(),
     is_active: true,
   };
 }
@@ -168,7 +169,7 @@ export function toTaskUpdate(draft: Omit<TaskDraft, 'familyId' | 'createdBy'>) {
     requires_alarm: draft.itemType === 'routine_task' && Boolean(draft.taskTime && draft.requiresAlarm),
     requires_photo: false,
     miss_notification_threshold: draft.itemType === 'calendar_event' ? 0 : draft.missNotificationThreshold ?? 3,
-    event_timezone: draft.itemType === 'calendar_event' ? draft.eventTimezone ?? 'UTC' : null,
+    event_timezone: draft.eventTimezone ?? getLocalTimezone(),
     is_active: true,
   };
 }
@@ -205,7 +206,7 @@ export function buildTaskViewsForDate(
     .map(mapTaskRow)
     .filter((task) => task.itemType === 'routine_task' && task.isActive && doesTaskOccurOnDate(task, new Date(`${dateKey}T00:00:00`)))
     .map((task) => {
-      const scheduledFor = getScheduledForLocalDate(dateKey, task.time);
+      const scheduledFor = getScheduledForLocalDate(dateKey, task.time, task.eventTimezone);
       const completion = getCompletionForOccurrence(completions, task.id, scheduledFor);
       const cloudStatus: CloudTaskView['cloudStatus'] =
         completion?.status ?? (isOccurrenceMissed(scheduledFor, now) ? 'missed' : 'pending');
@@ -263,7 +264,7 @@ function countConsecutiveMisses(
     if (!doesTaskOccurOnDate(task, date)) continue;
 
     const dateKey = toDateKey(date);
-    const scheduledFor = getScheduledForLocalDate(dateKey, task.time);
+    const scheduledFor = getScheduledForLocalDate(dateKey, task.time, task.eventTimezone);
     if (!isOccurrenceMissed(scheduledFor, now)) continue;
 
     const completion = getCompletionForOccurrence(completions, task.id, scheduledFor);
@@ -312,13 +313,15 @@ export function buildRoutineAttentionItems(
 
 export function buildCalendarEvents(
   tasks: TaskRow[],
+  parentTimezones: Record<string, string> = {},
   now = new Date(),
 ): CalendarEventView[] {
   return tasks
     .filter((task) => task.is_active && (task.item_type ?? 'routine_task') === 'calendar_event')
     .map((task) => {
       const time = task.task_time?.slice(0, 5) ?? '00:00';
-      const scheduledFor = getScheduledForLocalDate(task.start_date, time);
+      const timezone = task.event_timezone ?? parentTimezones[task.assigned_to] ?? getLocalTimezone();
+      const scheduledFor = getScheduledForLocalDate(task.start_date, time, timezone);
       return {
         id: task.id,
         familyId: task.family_id,
@@ -326,7 +329,7 @@ export function buildCalendarEvents(
         title: task.title,
         date: task.start_date,
         time,
-        timezone: task.event_timezone ?? 'UTC',
+        timezone,
         scheduledFor,
         isUpcoming: new Date(scheduledFor).getTime() >= now.getTime(),
         createdAt: task.created_at,
@@ -337,5 +340,5 @@ export function buildCalendarEvents(
 }
 
 export function eventSummary(event: CalendarEventView) {
-  return `${formatDate(event.scheduledFor)} at ${formatLocalTime(event.time)}`;
+  return `${formatViewerDate(event.scheduledFor)} at ${formatViewerTime(event.scheduledFor)}`;
 }

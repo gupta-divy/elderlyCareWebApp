@@ -27,6 +27,9 @@ export function Login() {
   const [formError, setFormError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(locationState?.message ?? null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const supabaseConfigWarning = !isSupabaseConfigured
+    ? 'Supabase environment variables are missing. Sign-in is unavailable until VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are configured.'
+    : null;
 
   const homeRoute = getHomeRoute(profile?.role);
   const redirectTo = useMemo(() => {
@@ -134,6 +137,12 @@ export function Login() {
         {statusMessage ? (
           <p className="mt-4 rounded-2xl bg-teal-50 px-4 py-3 text-sm font-medium text-teal-800">
             {statusMessage}
+          </p>
+        ) : null}
+
+        {supabaseConfigWarning ? (
+          <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+            {supabaseConfigWarning}
           </p>
         ) : null}
 

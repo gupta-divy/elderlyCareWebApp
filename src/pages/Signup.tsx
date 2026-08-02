@@ -11,6 +11,10 @@ import {
 } from '../lib/auth/phone';
 import { getHomeRoute } from '../lib/auth/routes';
 import { createClient, isSupabaseConfigured } from '../lib/supabase/client';
+import {
+  getDefaultTimezoneForCountry,
+  getTimezoneOptionsForCountry,
+} from '../utils/timezones';
 
 type SignupMode = 'create' | 'join';
 
@@ -58,6 +62,9 @@ export function Signup() {
   const [role, setRole] = useState<AppRole>('parent');
   const [email, setEmail] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<PhoneCountry>(PHONE_COUNTRIES[0]);
+  const [selectedTimezone, setSelectedTimezone] = useState(
+    getDefaultTimezoneForCountry(PHONE_COUNTRIES[0].iso),
+  );
   const [localPhoneNumber, setLocalPhoneNumber] = useState('');
   const [familyCode, setFamilyCode] = useState('');
   const [password, setPassword] = useState('');
@@ -73,6 +80,10 @@ export function Signup() {
   const normalizedEmail = useMemo(
     () => (isCompletingProfile ? user?.email ?? '' : email).trim().toLowerCase(),
     [email, isCompletingProfile, user?.email],
+  );
+  const timezoneOptions = useMemo(
+    () => getTimezoneOptionsForCountry(selectedCountry.iso),
+    [selectedCountry.iso],
   );
 
   useEffect(() => {
@@ -150,6 +161,8 @@ export function Signup() {
       p_role: role,
       p_email: normalizedEmail,
       p_whatsapp_number: details.whatsappNumber,
+      p_country_code: selectedCountry.iso,
+      p_timezone: selectedTimezone,
     };
 
     const response = mode === 'create'
@@ -191,6 +204,8 @@ export function Signup() {
               full_name: validation.fullName,
               role,
               whatsapp_number: validation.whatsappNumber,
+              country_code: selectedCountry.iso,
+              timezone: selectedTimezone,
             },
           },
         });
@@ -344,7 +359,10 @@ export function Signup() {
                   const nextCountry = PHONE_COUNTRIES.find(
                     (country) => country.iso === event.target.value,
                   );
-                  if (nextCountry) setSelectedCountry(nextCountry);
+                  if (nextCountry) {
+                    setSelectedCountry(nextCountry);
+                    setSelectedTimezone(getDefaultTimezoneForCountry(nextCountry.iso));
+                  }
                 }}
                 className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
               >
@@ -372,6 +390,21 @@ export function Signup() {
             Stored as an unverified WhatsApp contact number.
           </p>
         </section>
+
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Parent Time Zone</span>
+          <select
+            value={selectedTimezone}
+            onChange={(event) => setSelectedTimezone(event.target.value)}
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-teal-600 focus:ring-4 focus:ring-teal-100"
+          >
+            {timezoneOptions.map((timezone) => (
+              <option key={timezone.value} value={timezone.value}>
+                {timezone.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {!isCompletingProfile ? (
           <section className="space-y-4">

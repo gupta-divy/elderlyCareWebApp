@@ -5,7 +5,7 @@ import { useFeatureFlags } from '../../features/flags/featureFlags';
 import type { CalendarEventView, CloudTaskView } from '../../features/tasks/taskData';
 import { useCloudTasks } from '../../features/tasks/useCloudTasks';
 import { repeatLabel } from '../../features/tasks/taskValidation';
-import { formatDate, formatLocalTime } from '../../utils/helpers';
+import { formatTimezoneLabel, formatViewerDate, formatViewerTime } from '../../utils/timezones';
 
 function TaskCard({
   task,
@@ -26,7 +26,7 @@ function TaskCard({
         <div>
           <h3 className="text-xl font-bold text-slate-800">{task.title}</h3>
           <p className="text-lg text-slate-600">
-            {formatLocalTime(task.time)} - {formatDate(task.scheduledFor)}
+            {formatViewerTime(task.scheduledFor)} - {formatViewerDate(task.scheduledFor)}
           </p>
           <p className="text-sm text-slate-500">{repeatLabel(task.repeat)}</p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -47,7 +47,7 @@ function TaskCard({
 
       {task.completedAt ? (
         <p className="mt-3 text-sm text-slate-600">
-          Done on {formatDate(task.completedAt)}
+          Done on {formatViewerDate(task.completedAt)}
         </p>
       ) : null}
 
@@ -78,9 +78,9 @@ function UpcomingEvents({ events }: { events: CalendarEventView[] }) {
           <article key={event.id} className="rounded-2xl border-2 border-sky-200 bg-sky-50 p-4">
             <h3 className="text-xl font-bold text-slate-800">{event.title}</h3>
             <p className="text-lg text-slate-600">
-              {formatDate(event.scheduledFor)} at {formatLocalTime(event.time)}
+              {formatViewerDate(event.scheduledFor)} at {formatViewerTime(event.scheduledFor)}
             </p>
-            <p className="text-sm text-slate-500">{event.timezone}</p>
+            <p className="text-sm text-slate-500">{formatTimezoneLabel(event.timezone)}</p>
           </article>
         ))
       )}

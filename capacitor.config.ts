@@ -11,11 +11,11 @@ const config: CapacitorConfig = {
   },
   plugins: {
     App: {
-      disableBackButtonHandler: true,
+      disableBackButtonHandler: false,
     },
     Keyboard: {
       resize: KeyboardResize.Body,
-      resizeOnFullScreen: true,
+      resizeOnFullScreen: false,
       autoBackdropColor: 'dom',
     },
   },

@@ -7,8 +7,10 @@ import type {
   TaskWeekday,
 } from '../../types';
 import { startOfDay, toDateKey } from '../../utils/helpers';
+import { getLocalTimezone, zonedDateTimeToUtc } from '../../utils/timezones';
 
 export const TASK_GRACE_PERIOD_MINUTES = 120;
+export { getLocalTimezone };
 
 export type TaskFormInput = {
   itemType: TaskItemType;
@@ -26,10 +28,6 @@ export type TaskFormInput = {
 
 export const DEFAULT_MISS_NOTIFICATION_THRESHOLD: MissNotificationThreshold = 3;
 
-export function getLocalTimezone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-}
-
 function parseTimeParts(time: string): [number, number] {
   const [hours, minutes] = time.split(':').map(Number);
   return [hours || 0, minutes || 0];
@@ -44,6 +42,10 @@ export function combineLocalDateAndTime(dateKey: string, time: string): Date {
   const [hours, minutes] = parseTimeParts(time);
   date.setHours(hours, minutes, 0, 0);
   return date;
+}
+
+export function combineZonedDateAndTime(dateKey: string, time: string, timezone?: string): Date {
+  return zonedDateTimeToUtc(dateKey, time, timezone || getLocalTimezone());
 }
 
 function addDays(date: Date, days: number): Date {
@@ -81,13 +83,15 @@ function nextSelectedWeekday(
   selectedWeekdays: TaskWeekday[],
   anchor: Date,
   time: string,
+  timezone: string | undefined,
   now: Date,
 ): Date {
   const ordered = [...selectedWeekdays].sort((a, b) => a - b);
   for (const weekday of ordered) {
-    const candidate = combineLocalDateAndTime(
+    const candidate = combineZonedDateAndTime(
       toDateKey(nextWeekdayOnOrAfter(anchor, weekday)),
       time,
+      timezone,
     );
     if (candidate.getTime() >= now.getTime()) {
       return candidate;
@@ -95,20 +99,21 @@ function nextSelectedWeekday(
   }
 
   const first = ordered[0] ?? 0;
-  return combineLocalDateAndTime(
+  return combineZonedDateAndTime(
     toDateKey(addDays(nextWeekdayOnOrAfter(anchor, first), 7)),
     time,
+    timezone,
   );
 }
 
 export function getNextOccurrenceForInput(input: TaskFormInput, now = new Date()): Date {
   if (input.itemType === 'calendar_event') {
-    return combineLocalDateAndTime(input.startDate ?? toDateKey(now), input.time);
+    return combineZonedDateAndTime(input.startDate ?? toDateKey(now), input.time, input.eventTimezone);
   }
 
   const anchor = pickAnchorDate(input, now);
   const anchorDateKey = toDateKey(anchor);
-  const anchorDateTime = combineLocalDateAndTime(anchorDateKey, input.time);
+  const anchorDateTime = combineZonedDateAndTime(anchorDateKey, input.time, input.eventTimezone);
   const currentDay = startOfDay(now);
 
   switch (input.repeat) {
@@ -118,14 +123,15 @@ export function getNextOccurrenceForInput(input: TaskFormInput, now = new Date()
       }
       return anchorDateTime.getTime() >= now.getTime()
         ? anchorDateTime
-        : combineLocalDateAndTime(toDateKey(addDays(anchor, 1)), input.time);
+        : combineZonedDateAndTime(toDateKey(addDays(anchor, 1)), input.time, input.eventTimezone);
     case 'daily':
       if (anchorDateTime.getTime() >= now.getTime()) {
         return anchorDateTime;
       }
-      return combineLocalDateAndTime(
+      return combineZonedDateAndTime(
         toDateKey(anchor > currentDay ? anchor : addDays(currentDay, 1)),
         input.time,
+        input.eventTimezone,
       );
     case 'weekly': {
       const anchorWeekday = input.startDate
@@ -135,6 +141,7 @@ export function getNextOccurrenceForInput(input: TaskFormInput, now = new Date()
         [anchorWeekday],
         anchor > currentDay ? anchor : currentDay,
         input.time,
+        input.eventTimezone,
         now,
       );
     }
@@ -146,28 +153,28 @@ export function getNextOccurrenceForInput(input: TaskFormInput, now = new Date()
         monthCursor.getMonth(),
         sourceDay,
       );
-      const firstOccurrence = combineLocalDateAndTime(toDateKey(firstCandidate), input.time);
+      const firstOccurrence = combineZonedDateAndTime(toDateKey(firstCandidate), input.time, input.eventTimezone);
       if (firstOccurrence.getTime() >= now.getTime()) {
         return firstOccurrence;
       }
       const nextMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1);
       const nextCandidate = resolveMonthlyDate(nextMonth.getFullYear(), nextMonth.getMonth(), sourceDay);
-      return combineLocalDateAndTime(toDateKey(nextCandidate), input.time);
+      return combineZonedDateAndTime(toDateKey(nextCandidate), input.time, input.eventTimezone);
     }
     case 'yearly': {
       const monthIndex = input.startDate ? anchor.getMonth() : now.getMonth();
       const dayOfMonth = input.startDate ? anchor.getDate() : now.getDate();
       const yearCursor = anchor > currentDay ? anchor.getFullYear() : now.getFullYear();
       const firstCandidate = resolveYearlyDate(yearCursor, monthIndex, dayOfMonth);
-      const firstOccurrence = combineLocalDateAndTime(toDateKey(firstCandidate), input.time);
+      const firstOccurrence = combineZonedDateAndTime(toDateKey(firstCandidate), input.time, input.eventTimezone);
       if (firstOccurrence.getTime() >= now.getTime()) {
         return firstOccurrence;
       }
       const nextCandidate = resolveYearlyDate(yearCursor + 1, monthIndex, dayOfMonth);
-      return combineLocalDateAndTime(toDateKey(nextCandidate), input.time);
+      return combineZonedDateAndTime(toDateKey(nextCandidate), input.time, input.eventTimezone);
     }
     case 'set_days':
-      return nextSelectedWeekday(input.selectedWeekdays, anchor, input.time, now);
+      return nextSelectedWeekday(input.selectedWeekdays, anchor, input.time, input.eventTimezone, now);
     default:
       return anchorDateTime;
   }
@@ -271,6 +278,6 @@ export function doesTaskOccurOnDate(
   }
 }
 
-export function getScheduledForLocalDate(dateKey: string, time: string): string {
-  return combineLocalDateAndTime(dateKey, time).toISOString();
+export function getScheduledForLocalDate(dateKey: string, time: string, timezone?: string): string {
+  return combineZonedDateAndTime(dateKey, time, timezone).toISOString();
 }

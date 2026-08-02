@@ -31,6 +31,7 @@ import type {
 } from '../features/family/types';
 import { friendlyAuthError } from '../lib/auth/errors';
 import { createClient, isSupabaseConfigured } from '../lib/supabase/client';
+import { getLocalTimezone } from '../utils/timezones';
 import { useAuth } from './AuthContext';
 
 type ProfileUpdateResult = {
@@ -85,6 +86,8 @@ function toFamilyProfiles(members: FamilyMember[]) {
     email: member.profile.email,
     role: member.profile.role,
     whatsappNumber: member.profile.whatsappNumber,
+    countryCode: member.profile.countryCode ?? null,
+    timezone: member.profile.timezone ?? null,
   }));
 }
 
@@ -129,6 +132,8 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
       role: currentUser.role,
       whatsappNumber: currentUser.phoneNumber ?? null,
       whatsappVerified: true,
+      countryCode: 'IN',
+      timezone: getLocalTimezone(),
       createdAt: now,
       updatedAt: now,
     };
@@ -153,6 +158,8 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         role: familyUser.role,
         whatsappNumber: familyUser.phoneNumber ?? null,
         whatsappVerified: true,
+        countryCode: 'IN',
+        timezone: getLocalTimezone(),
         createdAt: now,
         updatedAt: now,
       },
@@ -186,7 +193,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
       const supabase = createClient();
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, role, email, whatsapp_number, whatsapp_verified, created_at, updated_at')
+        .select('id, full_name, role, email, whatsapp_number, whatsapp_verified, country_code, timezone, created_at, updated_at')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -257,7 +264,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
 
       const { data: profileRows, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, role, email, whatsapp_number, whatsapp_verified, created_at, updated_at')
+        .select('id, full_name, role, email, whatsapp_number, whatsapp_verified, country_code, timezone, created_at, updated_at')
         .in('id', memberProfileIds.length > 0 ? memberProfileIds : [user.id]);
 
       if (profilesError) throw profilesError;

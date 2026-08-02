@@ -90,12 +90,12 @@ a {
   max-width: 100vw;
 }
 
-.keyboard-open body {
-  min-height: calc(100dvh - var(--keyboard-height, 0px));
-}
-
 .keyboard-open .safe-area-bottom {
   padding-bottom: 0.75rem;
+}
+
+.keyboard-open .keyboard-aware-nav {
+  display: none;
 }
 
 .no-scrollbar {
